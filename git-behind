@@ -3,8 +3,19 @@ GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
 if [ -z "$GIT_DIR" ] ; then
     exit 1
 fi
-TRACKING=`git track`
-if [ -z "$TRACKING" ] ; then
-    exit 1
+ARGCOUNT=$#
+if [ $ARGCOUNT -eq 1 ] ; then
+    TO=$1
+else
+    TO=`git track`
+    if [ -z "$TO" ] ; then
+        exit 1
+    fi
 fi
-git rev-list --left-right "HEAD...$TRACKING" | grep '^>' | wc -l | awk '{print $1}'
+if [ $ARGCOUNT -eq 2 ] ; then
+    FROM=$1
+    TO=$2
+else
+    FROM=HEAD
+fi
+git rev-list --left-right "$FROM...$TO" | grep '^>' | wc -l | awk '{print $1}'
