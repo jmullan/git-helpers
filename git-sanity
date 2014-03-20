@@ -32,3 +32,14 @@ if [ -z "$GIT_USER_EMAIL" ]; then
     echo "git config user.email $E_EMAIL"
     echo "$(tput sgr0)"
 fi
+MASTER=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^master$`
+DEVELOP=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^develop$`
+if [ -n "$DEVELOP" ] ; then
+    BEHIND=`git behind develop master`
+    if [ "$BEHIND" -gt 0 ] ; then
+        echo
+        echo -n "$(tput setaf 1)"
+        echo -n "develop is behind master by $BEHIND commits"
+        echo "$(tput sgr0)"
+    fi
+fi
