@@ -1,0 +1,11 @@
+#!/bin/bash
+GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+if [ -z "$GIT_DIR" ] ; then
+    exit 1;
+fi
+ARGCOUNT=$#
+if [ "$ARGCOUNT" -eq 1 ] ; then
+    REF="$1"
+    git diff "$REF^1" "$REF"
+fi
+exit 1;
