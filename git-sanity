@@ -53,3 +53,12 @@ if [ -n "$DEVELOP" -a -n "$ORIGIN_MASTER" ] ; then
         echo "$(tput sgr0)"
     fi
 fi
+if [ -n "$MASTER" -a -n "$ORIGIN_MASTER" ] ; then
+    BEHIND=`git behind master origin/master`
+    if [ "$BEHIND" -gt 0 ] ; then
+        echo
+        echo -n "$(tput setaf 1)"
+        echo -n "master is behind origin/master by $BEHIND commits"
+        echo "$(tput sgr0)"
+    fi
+fi
