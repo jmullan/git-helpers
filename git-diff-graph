@@ -13,9 +13,11 @@ if [ 0 -ne $SCALE ] ; then
     DEL_WIDTH=$(($DEL / $SCALE))
 
     ADD_PAD_LEFT=$((10 - $ADD_WIDTH))
+    ADD_PAD_LEFT=0
     ADD_PAD_RIGHT=0
     DEL_PAD_LEFT=0
     DEL_PAD_RIGHT=$((10 - $DEL_WIDTH))
+    DEL_PAD_RIGHT=0
 
     echo -n "$(tput setaf 1)"
     printf '%*.*s' $ADD_PAD_LEFT $ADD_WIDTH "++++++++++" $ADD_PAD_RIGHT

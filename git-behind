@@ -4,18 +4,18 @@ if [ -z "$GIT_DIR" ] ; then
     exit 1
 fi
 ARGCOUNT=$#
-if [ $ARGCOUNT -eq 1 ] ; then
-    TO=$1
-else
-    TO=`git track`
-    if [ -z "$TO" ] ; then
-        exit 1
-    fi
-fi
 if [ $ARGCOUNT -eq 2 ] ; then
     FROM=$1
     TO=$2
 else
-    FROM=HEAD
+    FROM="HEAD"
+    if [ $ARGCOUNT -eq 1 ] ; then
+        TO=$1
+    else
+        TO=`git track`
+        if [ -z "$TO" ] ; then
+            exit 1
+        fi
+    fi
 fi
 git rev-list --left-right "$FROM...$TO" | grep '^>' | wc -l | awk '{print $1}'
