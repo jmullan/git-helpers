@@ -1,0 +1,23 @@
+#!/bin/bash
+GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+if [ -z "$GIT_DIR" ] ; then
+    exit 1
+fi
+HEADS=`find ${GIT_DIR}/logs/refs/heads -type f -mindepth 1 | sed "s#${GIT_DIR}/logs/refs/heads/##"`
+REMOTES=`find ${GIT_DIR}/logs/refs/remotes -type f -mindepth 1 | sed "s#${GIT_DIR}/logs/refs/remotes/##"`
+BRANCHES="${HEADS}"$'\n'"${REMOTES}"
+
+ORIGIN_DEVELOP=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/develop$`
+ORIGIN_MASTER=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/master$`
+IFS=$'\n'
+for branch in $BRANCHES; do
+    FEATURE=`echo ${branch} | grep feature/`
+    if [ -n "${FEATURE}" -a -n "${ORIGIN_DEVELOP}" ] ; then
+        FROM="origin/develop"
+    else
+        FROM="origin/master"
+    fi
+    AHEAD=`git ahead "${branch}" "$FROM"`
+    BEHIND=`git behind "${branch}" "$FROM"`
+    echo $branch	-$BEHIND	+$AHEAD	"(${FROM})"
+done
