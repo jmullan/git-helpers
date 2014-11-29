@@ -37,7 +37,8 @@ DEVELOP=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/or
 ORIGIN_MASTER=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/master$`
 if [ -n "$DEVELOP" -a -n "$MASTER" ] ; then
     BEHIND=`git behind develop master`
-    if [ "$BEHIND" -gt 0 ] ; then
+    IGNORE=`git config sanity.ignore.develop.master`
+    if [ -z "$IGNORE" -a "$BEHIND" -gt 0 ] ; then
         echo
         echo -n "$(tput setaf 1)"
         echo -n "develop is behind master by $BEHIND commits"
@@ -46,7 +47,8 @@ if [ -n "$DEVELOP" -a -n "$MASTER" ] ; then
 fi
 if [ -n "$DEVELOP" -a -n "$ORIGIN_MASTER" ] ; then
     BEHIND=`git behind develop origin/master`
-    if [ "$BEHIND" -gt 0 ] ; then
+    IGNORE=`git config sanity.ignore.develop.origin.master`
+    if [ -z "$IGNORE" -a "$BEHIND" -gt 0 ] ; then
         echo
         echo -n "$(tput setaf 1)"
         echo -n "develop is behind origin/master by $BEHIND commits"
