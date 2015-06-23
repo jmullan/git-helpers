@@ -1,0 +1,13 @@
+#!/bin/bash
+GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+if [ -z "$GIT_DIR" ] ; then
+    exit 1;
+fi
+LAST_MESSAGE_WIP=`git log -1 --pretty=%B | grep WIP`
+if [ -n "$LAST_MESSAGE_WIP" ] ; then
+    echo 'Amending'
+    git commit -a --amend  --no-edit
+else
+    echo 'Making a new WIP commit'
+    git commit -a -m WIP
+fi
