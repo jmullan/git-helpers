@@ -3,6 +3,7 @@ import argparse
 import os
 import pwd
 
+
 def check(options):
     uid = options.get('uid')
     username = options.get('username')
