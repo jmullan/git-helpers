@@ -9,7 +9,9 @@ elif [ -d "$GIT_DIR/rebase-merge" ]; then
     echo "MERGING REBASE"
 elif [ -d "$GIT_DIR/rebase-apply" ]; then
     if [ -f "$GIT_DIR/rebase-apply/rebasing" ]; then
-        echo "REBASING"
+        PROGRESS=`git ahead rebase-apply/onto`
+        TOTAL=`git behind rebase-apply/orig-head`
+        echo "REBASING ($PROGRESS/$TOTAL)"
     elif [ -f "$GIT_DIR/rebase-apply/applying" ]; then
         echo "APPLYING REBASE"
     else
