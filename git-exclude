@@ -1,0 +1,13 @@
+#!/bin/bash
+GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+if [ -z "$GIT_DIR" ] ; then
+    exit 1;
+fi
+ARGCOUNT=$#
+if [ $ARGCOUNT -eq 0 ] ; then
+   echo you must exclude something >&2
+   exit 1
+fi
+for x in "$@"; do
+    echo "$x" >> "${GIT_DIR}/info/exclude"
+done
