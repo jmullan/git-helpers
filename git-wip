@@ -6,8 +6,8 @@ fi
 LAST_MESSAGE_WIP=`git log -1 --pretty=%B | grep WIP`
 if [ -n "$LAST_MESSAGE_WIP" ] ; then
     echo 'Amending'
-    git commit -a --amend  --no-edit
+    git commit -a --amend  --no-edit --no-verify
 else
     echo 'Making a new WIP commit'
-    git commit -a -m WIP
+    git commit -a -m WIP --no-verify
 fi
