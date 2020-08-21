@@ -1,0 +1,22 @@
+#!/bin/bash
+set -xe
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+if [ -z "${GIT_DIR}" ] ; then
+    exit 1;
+fi
+ARGCOUNT="$#"
+CATCHUP_BRANCH="HEAD"
+if [ "${ARGCOUNT}" -eq 1 ] ; then
+    TRACKING="$1"
+else
+    TRACKING=$(git track)
+fi
+
+while [ $(git behind "${TRACKING}") -gt 0 ] ; do
+    HEAD_SHA=$(git rev-parse "${CATCHUP_BRANCH}")
+    TARGET_SHA=$(git rev-parse "${TRACKING}")
+    if [ "${HEAD_SHA}" != "${TARGET_SHA}" ] ; then
+        BRANCH_POINT=$(git merge-base "${TRACKING}" "${CATCHUP_BRANCH}")
+        git rebase $(git rev-list "${BRANCH_POINT}..${TRACKING}" | grep -v commit | tail -n 1)
+    fi
+done
