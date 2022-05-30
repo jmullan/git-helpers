@@ -15,10 +15,18 @@ def check(options):
         password = pwd.getpwnam(username)
     else:
         password = pwd.getpwuid(os.getuid())
+
+    # get a list at least 4 items long, hopefully split in the right pieces
+    parts = (password.pw_gecos or "").split(',') + ([""] * 4)
+    fullname = parts[0]
+    room_number = parts[1]
+    work_number = parts[2]
+    home_number = parts[3]
+
     if options.get('fullname'):
-        print password.pw_gecos
+        print(fullname)
     else:
-        print password.pw_uid, password.pw_name, password.pw_gecos
+        print(password.pw_uid, password.pw_name, fullname)
 
 def main():
     pass
