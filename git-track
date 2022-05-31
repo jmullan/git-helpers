@@ -17,19 +17,23 @@ fi
 if [ $ARGCOUNT -eq 2 ] ; then
     LOCAL_BRANCH=$1
     REMOTE_BRANCH=$2
-    git branch --set-upstream-to $LOCAL_BRANCH $REMOTE_BRANCH;
+    git branch --set-upstream-to "${LOCAL_BRANCH}" "${REMOTE_BRANCH}";
     exit;
 fi
-if [ -z "$GIT_REBASE" ] ; then
+if [ -z "${GIT_REBASE}" ] ; then
     TRACKING=$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || echo)
     if [ "$TRACKING" == "@{u}" ] ; then
         exit 1;
     fi
 fi
-if [ -z "$TRACKING" ] ; then
+if [ -z "${TRACKING}" ] ; then
     TRACKING=$(git config prompt.tracking)
-    if [ -z "$TRACKING" ]; then
-        TRACKING='origin/master'
+    if [ -z "${TRACKING}" ]; then
+        MAIN_NAME=$(git config --get gitflow.branch.main)
+        if [ -z "${MAIN_NAME}" ] ; then
+            MAIN_NAME=master
+        fi
+        TRACKING="origin/${MAIN_NAME}"
     fi
 fi
 echo $TRACKING
