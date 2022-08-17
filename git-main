@@ -1,0 +1,17 @@
+#!/bin/bash
+
+if [ -n "${1}" ] ; then
+    echo "Refreshing the main branch from origin" 1>&2
+    echo "was" 1>&2
+    git rev-parse --abbrev-ref --symbolic-full-name origin/HEAD 1>&2
+    git remote set-head origin -a 1>&2
+fi
+
+MAIN_NAME=$(git config --get gitflow.branch.main)
+if [ -z "${MAIN_NAME}" ] ; then
+    MAIN_NAME=$(git rev-parse --abbrev-ref --symbolic-full-name origin/HEAD)
+fi
+if [ -z "${MAIN_NAME}" ] ; then
+    MAIN_NAME=master
+fi
+echo "${MAIN_NAME}"
