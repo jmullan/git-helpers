@@ -1,10 +1,8 @@
 #!python3.10
-import json
 import re
 import sys
-from typing import List, Optional
 from argparse import ArgumentParser
-
+from typing import List, Optional, Tuple
 
 _ignores = [
     '* commit',
@@ -34,35 +32,94 @@ _ignore_matches = [
 ]
 
 
-def include_line(line):
+STDERR_ENABLED = False
+
+
+def stderr(line: Optional) -> None:
+    if not STDERR_ENABLED:
+        return
+    if line is None:
+        print("None\n", file=sys.stderr)
+    else:
+        print(f"{line}\n", file=sys.stderr)
+
+
+def include_line(line: Optional[str]) -> bool:
     return (
+        line is not None and
         not any(x in line for x in _ignores) and
         not any(re.search(regex, line) for regex in _ignore_matches)
     )
 
 
-def strip_line(line: str) -> str:
+def test_include_line():
+    includes = [
+        "yes", "me", ""
+    ]
+    for line in includes:
+        assert include_line(line)
+
+    not_includes = [
+        None, "", "* commit to ignore", "git-p4"
+    ]
+    for line in not_includes:
+        assert not include_line(line)
+
+
+def format_for_tag_only(commit: dict) -> str:
+    line = commit["subject"]
+    line = strip_line(line)
+    for x in _ignores:
+        line = line.replace(x, ' ')
+    for x in _ignore_matches:
+        line = re.sub(x, ' ', line)
+    tags = commit["tags"] or []
+    tags.sort(key=len, reverse=True)
+    for tag in commit["tags"] or []:
+        line = line.replace(tag, '')
+    if not re.match(r"\w", line):
+        line = ""
+    line = re.sub(r'\s+', ' ', line)
     line = line.strip()
-    line = re.sub(r'^(\** *)*', '', line)
-    line = re.sub(r'^(-* *)*', '', line)
-    line = re.sub(r'^Pull request #[0-9]+: +', '', line, flags=re.IGNORECASE)
-    line = re.sub(r'^feature/', '', line, flags=re.IGNORECASE)
-    line = re.sub(r'^bugfix/', '', line, flags=re.IGNORECASE)
+    line = add_jiras(line, commit["jiras"])
     return line
 
 
-def add_star(line) -> Optional[str]:
+def strip_line(line: str) -> str:
+    if line:
+        line = line.strip()
+        line = re.sub(r'^(\** *)*', '', line)
+        line = re.sub(r'^(-* *)*', '', line)
+        line = re.sub(r'^Pull request #[0-9]+: +', '', line, flags=re.IGNORECASE)
+        line = re.sub(r'^feature/', '', line, flags=re.IGNORECASE)
+        line = re.sub(r'^bugfix/', '', line, flags=re.IGNORECASE)
+        return line
+
+
+def add_star(line: Optional[str]) -> Optional[str]:
     line = strip_line(line)
     if line:
         return '* %s' % line
 
 
-def format_body(body, jiras: List[str]) -> str:
-    lines = body.split("\n")
-    lines = [add_jiras(line, jiras) for line in lines]
-    lines = [add_star(line) for line in lines]
-    lines = [line for line in lines if line is not None]
-    return "\n".join(lines)
+def format_jira(line) -> Optional[str]:
+    if line:
+        line = re.sub(r'\*\s*([A-Z]{4,}-[0-9]+)\s*[-:]?\s*', r'* \1 : ', line)
+    return line
+
+
+def test_include_line():
+    expectations = {
+        "* FOOBAR-1637 last": "* FOOBAR-1637 : last",
+        "* BAZZ-2733 :     ": "* BAZZ-2733 : ",
+        "* PIRATE-6206 - New ": "* PIRATE-6206 : New ",
+        "* PIRATE-6206- New ": "* PIRATE-6206 : New ",
+        "* PIRATE-6206 -New ": "* PIRATE-6206 : New ",
+        "* PIRATE-6206-New ": "* PIRATE-6206 : New ",
+    }
+    for line, expected in expectations.items():
+        assert expected == format_jira(line)
+
 
 
 def extract_jiras(body):
@@ -82,38 +139,109 @@ def add_jiras(line: str, jiras: List[str]) -> str:
     return line
 
 
-def make_notes(release_version, commits):
+def unique(items: List) -> List:
+    seen = set()
+    output = []
+    for item in items or []:
+        if item not in seen:
+            output.append(item)
+            seen.add(item)
+    return output
 
+
+def format_tags(tags: List[str]) -> str:
+    if not tags:
+        return ""
+    tags = sorted(tags, key=best_tag)
+    tags_line = ", ".join([f"`{tag}`" for tag in tags])
+    return f"### tags: {tags_line}"
+
+
+def best_tag(tag: str) -> Tuple[bool, bool, bool, int, str]:
+    if tag is None:
+        tag = ""
+    has_snapshot = "SNAPSHOT" in tag
+    has_semantic_version = bool(re.match(r'^[0-9]+(\.[0-9]+){1,2}$', tag))
+    has_semantic_subversion = bool(re.match(r'^[0-9]+(\.[0-9]+){1,2}(-.*)?$', tag))
+    return has_snapshot, not has_semantic_version, not has_semantic_subversion , len(tag), tag
+
+
+def tags_to_release_version(tags: List[str], found_version) -> Optional[str]:
+    semantic_versions = []
+    semantic_subversions = []
+    other_tags = []
+    for tag in tags:
+        if found_version and "SNAPSHOT" in tag:
+            return None
+        if re.match(r'^[0-9]+(\.[0-9]+){1,2}$', tag):
+            semantic_versions.append(tag)
+        elif re.match(r'^[0-9]+(\.[0-9]+){1,2}(-.*)?$', tag):
+            semantic_subversions.append(tag)
+        else:
+            other_tags.append(tag)
+    for candidates in [semantic_versions, semantic_subversions, other_tags]:
+        if candidates:
+            candidates.sort(key=best_tag)
+            return candidates[0]
+
+
+def format_body(body: Optional[str], jiras: List[str]) -> Optional[str]:
+    if body is None:
+        return None
+    lines = body.rstrip().split("\n")
+    lines = [line for line in lines if line is not None]
+    lines = [add_jiras(line, jiras) for line in lines]
+    lines = [add_star(line) for line in lines]
+    lines = [format_jira(line) for line in lines]
+    lines = [line for line in lines if line is not None]
+    return "\n".join(lines)
+
+
+def make_notes(release_version, commits):
     version_string = f'v {release_version}'.strip()
 
     release_note = []
     if commits:
         date = commits[0]["date"]
         if date:
-            version_string = f'{version_string} - {date}'.strip()
+            version_string = f'## {version_string} - {date}'.strip()
     release_note.append(version_string)
-    release_note.append('-' * len(version_string))
-
+    # release_note.append('-' * len(version_string))
 
     release_notes = []
-
+    tags = []
     for commit in commits:
         # release_notes.append(f"{commit['sha']} {commit['parents']}")
         subject = commit["subject"]
-        if not include_line(subject):
-            # release_notes.append(f"- skipping {commit['subject']}")
-            continue
+        tags.extend(commit["tags"])
+        if tags:
+            if not include_line(subject):
+                commit_line = format_for_tag_only(commit)
+                if commit_line and commit_line not in release_notes:
+                    release_notes.append(format_tags(tags))
+                    tags = []
+                    release_notes.append(commit_line)
+                continue
+            else:
+                release_notes.append(format_tags(tags))
+                tags = []
+        else:
+            if not include_line(subject):
+                stderr(f"- skipping {commit['subject']}")
+                continue
         # release_notes.append(f"{commit['jiras']}")
         # release_notes.append(f"+ using {commit['subject']}")
-        commit_line = subject
-        commit_line = add_jiras(commit_line, commit["jiras"])
-        commit_line = add_star(commit_line)
+        commit_line = format_body(subject, commit["jiras"])
         if commit_line and commit_line not in release_notes:
             release_notes.append(commit_line)
         body = format_body(commit["body"], commit["jiras"])
         if body:
             release_notes.append(body)
+    if tags:
+        release_notes.append(format_tags(tags))
     if release_notes:
+        release_notes = '\n'.join(release_notes).split("\n")
+        release_notes = unique(release_notes)
         release_note.append('\n'.join(release_notes))
         release_note.append('')
         return '\n'.join(release_note)
@@ -142,6 +270,9 @@ def main():
     parser.add_argument('-v', '--verbose', dest='verbose',
                         action='store_true', default=False,
                         help='verbose is more verbose')
+    parser.add_argument('-t', '--tags', dest='tags',
+                        action='store_true', default=False,
+                        help='Use tags and other found versions')
     parser.add_argument('version', default='Current', nargs='?')
     args = parser.parse_args()
     options = args.__dict__
@@ -220,12 +351,24 @@ def main():
     release_version = options.get('version') or 'Unknown'
     release_commits[release_version] = []
     releases.append(release_version)
+
+    use_tags = options.get("tags") or False
+    found_version = False
     for sha, commit in commits_by_sha.items():
         version = get_version(commit["subject"])
+        commit_tags = commit["tags"]
         if version:
             release_version = version
             releases.append(release_version)
             release_commits[release_version] = []
+            found_version = True
+        elif use_tags and commit_tags:
+            candidate_version = tags_to_release_version(commit_tags, found_version)
+            if candidate_version:
+                release_version = candidate_version
+                releases.append(release_version)
+                release_commits[release_version] = []
+
         release_commits[release_version].append(commit)
 
     changes = []

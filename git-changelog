@@ -16,8 +16,10 @@ function usage() {
   echo "git changelog since 1.2.3"
   echo "git changelog 1.2.3"
   echo "git changelog 1.2.3 main --verbose  # pass --verbose option to log_to_changelog.py"
+  echo "git changelog 1.2.3 main --verbose --tags # pass --verbose and --tags option to log_to_changelog.py"
   echo "git changelog 1.2.3 -- --verbose  # pass --verbose option to log_to_changelog.py"
   echo "git changelog 1.2.3 -- \"Current\" --verbose"
+  echo "git changelog 1.2.3 -- \"Current\" --tags"
   exit 1
 }
 
