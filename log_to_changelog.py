@@ -273,6 +273,9 @@ def main():
     parser.add_argument('-t', '--tags', dest='tags',
                         action='store_true', default=False,
                         help='Use tags and other found versions')
+    parser.add_argument('-m', '--months', dest='months',
+                        action='store_true', default=False,
+                        help='Use months and other found versions')
     parser.add_argument('version', default='Current', nargs='?')
     args = parser.parse_args()
     options = args.__dict__
@@ -353,7 +356,9 @@ def main():
     releases.append(release_version)
 
     use_tags = options.get("tags") or False
+    use_months = options.get("months") or False
     found_version = False
+    current_month = None
     for sha, commit in commits_by_sha.items():
         version = get_version(commit["subject"])
         commit_tags = commit["tags"]
@@ -368,8 +373,14 @@ def main():
                 release_version = candidate_version
                 releases.append(release_version)
                 release_commits[release_version] = []
-
+        elif use_months:
+            candidate_version = commit['date'][:7]
+            if candidate_version != release_version and candidate_version != current_month:
+                release_version = candidate_version
+                releases.append(release_version)
+                release_commits[release_version] = []
         release_commits[release_version].append(commit)
+        current_month = commit['date'][:7]
 
     changes = []
     for release_version in releases:
