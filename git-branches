@@ -12,22 +12,28 @@ if [ $ARGCOUNT -eq 1 ] ; then
         BRANCHES="${HEADS}"$'\n'"${REMOTES}"
     fi
 fi
-ORIGIN_DEVELOP=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/develop$)
-ORIGIN_MASTER=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/master$)
+_MAIN=$(git main)
+MAIN=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^'"${_MAIN}"'$')
+DEVELOP=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^develop$')
 IFS=$'\n'
 for branch in $BRANCHES; do
     FEATURE=$(echo "${branch}" | grep feature/)
-    if [ -n "${FEATURE}" ] && [ -n "${ORIGIN_DEVELOP}" ] ; then
-        FROM="origin/develop"
+    if [ -n "${FEATURE}" ] && [ -n "${DEVELOP}" ] ; then
+        FROM="${DEVELOP}"
     else
-        FROM="origin/master"
+        FROM="${MAIN}"
+    fi
+    if [ "${branch}" = "${FROM}" ] ; then
+        FROM=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep "^origin/${FROM}"'$')
     fi
     AHEAD=$(git ahead "${branch}" "$FROM")
     BEHIND=$(git behind "${branch}" "$FROM")
-    COMMIT_DATE=$(git log "${branch}" --pretty=format:"%ad" | head -1)
+    COMMIT_DATE=$(git log "${branch}" --pretty=format:"%ad" --date=short | head -1)
     TRACKING=$(git rev-parse --abbrev-ref --symbolic-full-name "${branch}@{u}" 2>/dev/null)
     if [ $? != 0 ] ; then
-        TRACKING="Upstream gone"
+        TRACKING=" Upstream gone"
+    else
+        TRACKING=""
     fi
-    echo "${branch}	-${BEHIND}	+${AHEAD}	(${FROM}) ${TRACKING} ${COMMIT_DATE}"
+    echo "${branch}	-${BEHIND}	+${AHEAD} ${COMMIT_DATE} (${FROM})${TRACKING}"
 done

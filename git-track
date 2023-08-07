@@ -29,10 +29,7 @@ fi
 if [ -z "${TRACKING}" ] ; then
     TRACKING=$(git config prompt.tracking)
     if [ -z "${TRACKING}" ]; then
-        MAIN_NAME=$(git config --get gitflow.branch.main)
-        if [ -z "${MAIN_NAME}" ] ; then
-            MAIN_NAME=master
-        fi
+        MAIN_NAME=$(git main)
         TRACKING="origin/${MAIN_NAME}"
     fi
 fi

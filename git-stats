@@ -3,15 +3,19 @@ GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
 if [ -z "$GIT_DIR" ] ; then
     exit 1;
 fi
+AGAINST=
 ARGCOUNT=$#
-if [ $ARGCOUNT -eq 1 ] ; then
+if [ $ARGCOUNT -eq 2 ] ; then
+    TRACKING=$1
+    AGAINST=$2
+elif [ $ARGCOUNT -eq 1 ] ; then
     TRACKING=$1
 else
-    TRACKING=`git track`
+    TRACKING=$(git track)
 fi
 if [ -n "$TRACKING" ] ; then
-    ADDED=`git diff --numstat $TRACKING | total`
-    DELETED=`git diff --numstat $TRACKING | awk '{print $2}' | total`
+    ADDED=$(git diff --numstat $TRACKING $AGAINST | total)
+    DELETED=$(git diff --numstat $TRACKING $AGAINST | awk '{print $2}' | total)
 else
     ADDED=0
     DELETED=0

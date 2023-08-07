@@ -1,12 +1,12 @@
 #!/bin/bash
-GIT_DIR=`git rev-parse --git-dir 2>/dev/null`
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
 if [ -z "$GIT_DIR" ] ; then
     exit 1;
 fi
-GIT_USER_NAME=`git config user.name`
-GIT_USER_EMAIL=`git config user.email`
+GIT_USER_NAME=$(git config user.name)
+GIT_USER_EMAIL=$(git config user.email)
 if [ -z "$GIT_USER_NAME" ]; then
-    E_FULLNAME=`gecos --fullname | quote`
+    E_FULLNAME=$(gecos --fullname | quote)
     echo
     echo "$(tput setaf 1)No username set for git: git config user.name $E_FULLNAME $(tput sgr0)"
 fi
@@ -18,53 +18,54 @@ if [ -z "$GIT_USER_EMAIL" ]; then
     if [ -z "$EMAIL" ]; then
         if [ -z "$EMAIL" ]; then
             if [ -f ~/.forward ]; then
-                EMAIL=`cat ~/.forward | head -n 1`
+                EMAIL=$(cat ~/.forward | head -n 1)
             else
-                USERNAME=`whoami`
+                USERNAME=$(whoami)
                 if [ -f /etc/mailname ] ; then
-                    HOSTNAME=`cat /etc/mailname`
+                    HOSTNAME=$(cat /etc/mailname)
                 else
-                    HOSTNAME=`hostname`
+                    HOSTNAME=$(hostname)
                 fi
                 EMAIL="$USERNAME@$HOSTNAME"
             fi
         fi
     fi
-    E_EMAIL=`echo $EMAIL | quote`
+    E_EMAIL=$(echo $EMAIL | quote)
     echo "git config user.email $E_EMAIL"
     echo "$(tput sgr0)"
 fi
-REMOTE=`git remote`
+REMOTE=$(git remote)
 if [ -n "$REMOTE" ] ; then
-    MASTER=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^master$`
-    DEVELOP=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^develop$`
-    ORIGIN_MASTER=`git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep ^origin/master$`
-    if [ -n "$DEVELOP" -a -n "$MASTER" ] ; then
-        BEHIND=`git behind develop master`
-        IGNORE=`git config sanity.ignore.develop.master`
-        if [ -z "$IGNORE" -a "$BEHIND" -gt 0 ] ; then
+    _MAIN=$(git main)
+    MAIN=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^'"${_MAIN}"'$')
+    DEVELOP=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep "^develop$")
+    ORIGIN_MAIN=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep "^origin/${_MAIN}"'$')
+    if [ -n "$DEVELOP" -a -n "${MAIN}" ] ; then
+        BEHIND=$(git behind develop "${MAIN}")
+        IGNORE=$(git config "sanity.ignore.develop.${MAIN}")
+        if [ -z "$IGNORE" -a "${BEHIND}" -gt 0 ] ; then
             echo
             echo -n "$(tput setaf 1)"
-            echo -n "develop is behind master by $BEHIND commits"
+            echo -n "develop is behind ${MAIN} by ${BEHIND} commits"
             echo "$(tput sgr0)"
         fi
     fi
-    if [ -n "$DEVELOP" -a -n "$ORIGIN_MASTER" ] ; then
-        BEHIND=`git behind develop origin/master`
-        IGNORE=`git config sanity.ignore.develop.origin.master`
-        if [ -z "$IGNORE" -a "$BEHIND" -gt 0 ] ; then
+    if [ -n "$DEVELOP" -a -n "$ORIGIN_MAIN" ] ; then
+        BEHIND=$(git behind develop "${ORIGIN_MAIN}")
+        IGNORE=$(git config "sanity.ignore.develop.origin.${MAIN}")
+        if [ -z "$IGNORE" -a "${BEHIND}" -gt 0 ] ; then
             echo
             echo -n "$(tput setaf 1)"
-            echo -n "develop is behind origin/master by $BEHIND commits"
+            echo -n "develop is behind ${ORIGIN_MAIN} by ${BEHIND} commits"
             echo "$(tput sgr0)"
         fi
     fi
-    if [ -n "$MASTER" -a -n "$ORIGIN_MASTER" ] ; then
-        BEHIND=`git behind master origin/master`
-        if [ "$BEHIND" -gt 0 ] ; then
+    if [ -n "${MAIN}" -a -n "$ORIGIN_MAIN" ] ; then
+        BEHIND=$(git behind "${MAIN}" "${ORIGIN_MAIN}")
+        if [ "${BEHIND}" -gt 0 ] ; then
             echo
             echo -n "$(tput setaf 1)"
-            echo -n "master is behind origin/master by $BEHIND commits"
+            echo -n "${MAIN} is behind ${ORIGIN_MAIN} by ${BEHIND} commits"
             echo "$(tput sgr0)"
         fi
     fi

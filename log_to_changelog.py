@@ -32,8 +32,8 @@ _ignore_matches = [
     r"Merge in",
 ]
 
-
 STDERR_ENABLED = False
+INVALID_NAMES = {'jenkins', 'mobileautomation'}
 
 
 def stderr(line: Optional) -> None:
@@ -218,10 +218,26 @@ def format_body(body: Optional[str], jiras: List[str]) -> Optional[str]:
     return "\n".join(lines)
 
 
+
+
+def valid_name(name: Optional[str]) -> bool:
+    if name is None:
+        return False
+    name = name.strip()
+    if len(name) < 1:
+        return False
+    name = name.lower()
+    if 'jenkins builder' in name:
+        return False
+    if name in INVALID_NAMES:
+        return False
+    return True
+
+
 def format_names(commits: List) -> Optional[str]:
     if not commits:
         return None
-    names = set(commit["name"] for commit in commits)
+    names = set(commit["name"] for commit in commits if valid_name(commit["name"]))
     if not names:
         return None
     return ", ".join(sorted(names))
@@ -565,6 +581,7 @@ def main():
     use_tags = options.get("tags") or False
     use_months = options.get("months") or False
     found_version = False
+    current_month = None
     for sha, commit in commits_by_sha.items():
         version = get_version(commit["subject"])
         commit_tags = commit["tags"]
@@ -577,7 +594,10 @@ def main():
                 release_version = candidate_version
         elif use_months:
             candidate_version = commit["date"][:7]
-            release_version = candidate_version
+            if candidate_version != current_month:
+                # If there is an existing version and we are after it but in the same month
+                # we do not want to change to a month
+                release_version = candidate_version
 
         if release_version not in release_commits:
             releases.append(release_version)

@@ -1,0 +1,21 @@
+#!/bin/bash
+GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
+if [ -z "${GIT_DIR}" ] ; then
+    exit 1
+fi
+ARGCOUNT=$#
+if [ $ARGCOUNT -eq 2 ] ; then
+    FROM=$1
+    TO=$2
+else
+    TO="HEAD"
+    if [ $ARGCOUNT -eq 1 ] ; then
+        FROM=$1
+    else
+        FROM=$(git track)
+        if [ -z "${FROM}" ] ; then
+            exit 1
+        fi
+    fi
+fi
+diff -U 1 <(git log --oneline "${FROM}") <(git log --oneline "${TO}")
