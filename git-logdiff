@@ -12,10 +12,10 @@ else
     if [ $ARGCOUNT -eq 1 ] ; then
         FROM=$1
     else
-        FROM=$(git track)
+        FROM=$(git main)
         if [ -z "${FROM}" ] ; then
             exit 1
         fi
     fi
 fi
-diff -U 1 <(git log --oneline "${FROM}") <(git log --oneline "${TO}")
+diff -U 1 <(git log --first-parent --oneline "${FROM}") <(git log --first-parent --oneline "${TO}")

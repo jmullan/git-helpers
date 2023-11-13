@@ -1,4 +1,4 @@
-#!python3.10
+#!/usr/bin/env python3.11
 import re
 import sys
 from argparse import ArgumentParser
@@ -33,7 +33,7 @@ _ignore_matches = [
 ]
 
 STDERR_ENABLED = False
-INVALID_NAMES = {'jenkins', 'mobileautomation'}
+INVALID_NAMES = {"jenkins", "mobileautomation"}
 
 
 def stderr(line: Optional) -> None:
@@ -218,8 +218,6 @@ def format_body(body: Optional[str], jiras: List[str]) -> Optional[str]:
     return "\n".join(lines)
 
 
-
-
 def valid_name(name: Optional[str]) -> bool:
     if name is None:
         return False
@@ -227,7 +225,7 @@ def valid_name(name: Optional[str]) -> bool:
     if len(name) < 1:
         return False
     name = name.lower()
-    if 'jenkins builder' in name:
+    if "jenkins builder" in name:
         return False
     if name in INVALID_NAMES:
         return False
@@ -343,7 +341,9 @@ def extract_refs(commit_data: Dict) -> Dict[str, List[str]]:
     heads = prune_heads(heads)
     shas_to_refs = {sha: heads}
 
-    merge_matches = re.search(r"Merge .* from ([^ ]+) to ([^ ]+)$", commit_data["subject"])
+    merge_matches = re.search(
+        r"Merge .* from ([^ ]+) to ([^ ]+)$", commit_data["subject"]
+    )
     if merge_matches:
         from_ref = merge_matches.group(1)
         to_ref = merge_matches.group(2)
@@ -421,7 +421,7 @@ def print_tree(commits_by_sha: Dict[str, Dict], refs_by_sha: Dict[str, List[str]
             new_current_branches.extend(commit_data.get("parent_shas") or [])
         current_branches = sorted(
             new_current_branches,
-            key=lambda sha: commits_by_sha.get(sha, {}).get("date")
+            key=lambda sha: commits_by_sha.get(sha, {}).get("date"),
         )
         print(" ".join(line))
 
@@ -562,7 +562,6 @@ def main():
                     else:
                         parent["maybe_jiras"].extend(commit_data["jiras"])
                 elif not commit_data["jiras"]:
-
                     # print(f"adding {commit_data['jiras']} from parent {parent_sha} to {sha}")
                     if is_merge_to_master or shares_subject:
                         commit_data["jiras"].extend(parent["jiras"])
@@ -609,7 +608,9 @@ def main():
             release_dates[release_version] = current_month
 
     changes = []
-    for release_version in sorted(releases, key=lambda v: release_dates.get(v) or v, reverse=True):
+    for release_version in sorted(
+        releases, key=lambda v: release_dates.get(v) or v, reverse=True
+    ):
         commits = release_commits.get(release_version) or []
         if not commits:
             continue

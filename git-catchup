@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -xe
+set -xe
 trap exit SIGHUP SIGINT SIGTERM
 
 GIT_DIR=$(git rev-parse --git-dir 2>/dev/null)
@@ -13,7 +13,7 @@ if [ "${ARGCOUNT}" -eq 1 ] ; then
 else
     TRACKING=$(git track)
 fi
-
+git logdiff | tail
 while [ "$(git behind "${TRACKING}")" -gt 0 ] ; do
     HEAD_SHA=$(git rev-parse "${CATCHUP_BRANCH}")
     TARGET_SHA=$(git rev-parse "${TRACKING}")
