@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ -n "${1}" ] ; then
+if [ "${1}" == "--refresh" ] ; then
     git fetch --all
     echo "Refreshing the main branch from origin" 1>&2
     echo "was" 1>&2
