@@ -188,7 +188,7 @@ def best_tag(tag: str) -> Tuple[bool, bool, bool, int, str]:
 
 def tags_to_release_version(tags: List[str], found_version) -> Optional[str]:
     semantic_versions = []
-    semantic_subversions = []
+    semantic_sub_versions = []
     other_tags = []
     for tag in tags:
         if found_version and "SNAPSHOT" in tag:
@@ -196,10 +196,10 @@ def tags_to_release_version(tags: List[str], found_version) -> Optional[str]:
         if re.match(r"^[0-9]+(\.[0-9]+){1,2}$", tag):
             semantic_versions.append(tag)
         elif re.match(r"^[0-9]+(\.[0-9]+){1,2}(-.*)?$", tag):
-            semantic_subversions.append(tag)
+            semantic_sub_versions.append(tag)
         else:
             other_tags.append(tag)
-    for candidates in [semantic_versions, semantic_subversions, other_tags]:
+    for candidates in [semantic_versions, semantic_sub_versions, other_tags]:
         if candidates:
             candidates.sort(key=best_tag)
             return candidates[0]
@@ -269,8 +269,7 @@ def format_commit(commit: Dict) -> List[str]:
 
 
 def make_notes(release_version: str, commits: List[Dict]):
-    release_note = []
-    release_note.append(make_version_line(release_version, commits))
+    release_note = [make_version_line(release_version, commits)]
     tags_notes = []
 
     commits_by_tag = {}
@@ -382,7 +381,7 @@ def test_extract_refs():
         ],
         "tags": [],
         "heads": [],
-        "subject": "Merge branch 'feature/branchname'",
+        "subject": "Merge branch 'feature/branch_name'",
     }
     refs = extract_refs(commit_data)
     assert {"abcd": []} == refs
@@ -477,11 +476,11 @@ def main():
         refnames = commit_data.get("refnames")
         if refnames:
             refs = refnames.split(", ")
-            for refname in refs:
-                if refname.startswith("tag: "):
-                    tags.append(refname[5:])
+            for reference_name in refs:
+                if reference_name.startswith("tag: "):
+                    tags.append(reference_name[5:])
                 else:
-                    heads.append(refname)
+                    heads.append(reference_name)
         parents = commit_data.get("parents")
         if parents:
             commit_data["parent_shas"] = parents.split(" ")
@@ -510,11 +509,11 @@ def main():
                 child_shas[parent_sha] = []
             child_shas[parent_sha].append(sha)
         commit_shas_to_refs = extract_refs(commit_data)
-        for sha, refs in commit_shas_to_refs.items():
+        for commit_sha, refs in commit_shas_to_refs.items():
             if refs:
-                if sha not in shas_to_refs:
-                    shas_to_refs[sha] = []
-                shas_to_refs[sha].extend(refs)
+                if commit_sha not in shas_to_refs:
+                    shas_to_refs[commit_sha] = []
+                shas_to_refs[commit_sha].extend(refs)
     for sha, commit_data in commits_by_sha.items():
         refs = shas_to_refs.get(sha) or []
         children = child_shas.get(sha) or []
@@ -594,7 +593,7 @@ def main():
         elif use_months:
             candidate_version = commit["date"][:7]
             if candidate_version != current_month:
-                # If there is an existing version and we are after it but in the same month
+                # If there is an existing version, and we are after it, but in the same month
                 # we do not want to change to a month
                 release_version = candidate_version
 
