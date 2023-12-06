@@ -504,7 +504,7 @@ def main():
     for sha, commit_data in commits_by_sha.items():
         if sha not in child_shas:
             child_shas[sha] = []
-        for parent_sha in commit_data["parent_shas"]:
+        for parent_sha in commit_data.get("parent_shas") or []:
             if parent_sha not in child_shas:
                 child_shas[parent_sha] = []
             child_shas[parent_sha].append(sha)

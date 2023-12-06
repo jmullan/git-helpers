@@ -37,6 +37,7 @@ fi
 if [ "$ARGCOUNT" -eq 1 ] ; then
   REF_A="since"
   REF_B="${1}"
+  shift
 else
   REF_A="${1}"
   shift
@@ -51,14 +52,18 @@ fi
 if [ "${REF_B}" == "--" ] ; then
   REF_B="HEAD"
 fi
-SHA=$(git rev-parse "${REF_A}")
-SHB=$(git rev-parse "${REF_B}")
 
+if [ "$REF_A" == "--all" ] ; then
+  RANGE="HEAD"
+else
+  SHA=$(git rev-parse "${REF_A}")
+  SHB=$(git rev-parse "${REF_B}")
+  RANGE="${SHA}^..${SHB}"
+fi
 # echo "SHAS A ${SHA}" B "${SHB} @ $@"
 
 # echo git log "${SHA}^..${SHB}"
-
 FORMAT="sha %H%ndate %as%nemail %ae%nname %an%nrefnames %D%nparents %P%nbody %B%n"
 
-git log -z --format="${FORMAT}" "${SHA}^..${SHB}" \
+git log -z --format="${FORMAT}" "${RANGE}" \
    | python3.10 "${MY_DIR}/log_to_changelog.py" "$@"
