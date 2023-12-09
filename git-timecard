@@ -1,0 +1,14 @@
+#!/bin/bash
+GIT_DIR=$(git rev-parse --absolute-git-dir 2>/dev/null)
+if [ -z "${GIT_DIR}" ] ; then
+    echo "Cannot find git dir -- are you sure we are in a git repo?" 1>&2
+    exit 1
+fi
+# probably right!
+GIT_CLONE_DIR=$(dirname $GIT_DIR)
+DATE=$(date "+%F %H:%M:%S")
+HEADNAME="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+LOGFILE=$(git config timecard.filename)
+if [ -n "${LOGFILE}" ] ; then
+    echo "${DATE} $(basename ${GIT_CLONE_DIR}) ${HEADNAME} ${@}" >> "${LOGFILE}"
+fi
