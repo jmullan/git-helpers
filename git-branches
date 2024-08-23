@@ -4,7 +4,7 @@ if [ -z "$GIT_DIR" ] ; then
     exit 1
 fi
 HEADS=$(find ${GIT_DIR}/logs/refs/heads -mindepth 1 -type f | sed "s#${GIT_DIR}/logs/refs/heads/##" | sort)
-BRANCHES="${HEADS}"
+BRANCHES=$(git branch --format '%(refname:short)')
 ARGCOUNT=$#
 if [ $ARGCOUNT -eq 1 ] ; then
     if [ "$1" == "--include-remote" ] ; then

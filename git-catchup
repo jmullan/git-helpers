@@ -19,6 +19,7 @@ while [ "$(git behind "${TRACKING}")" -gt 0 ] ; do
     TARGET_SHA=$(git rev-parse "${TRACKING}")
     if [ "${HEAD_SHA}" != "${TARGET_SHA}" ] ; then
         BRANCH_POINT=$(git merge-base "${TRACKING}" "${CATCHUP_BRANCH}")
+
         git rebase "$(git rev-list "${BRANCH_POINT}..${TRACKING}" | grep -v commit | tail -n 1)" || exit 1
     fi
 done
