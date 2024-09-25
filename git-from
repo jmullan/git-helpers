@@ -1,0 +1,39 @@
+#!/bin/bash
+
+HEAD_NAME="$(git rev-parse --abbrev-ref HEAD 2>/dev/null)"
+if [ -z "${HEAD_NAME}" ] ; then
+    echo "No head available" 1>&2
+    exit 1
+fi
+if [ "${HEAD_NAME}" == "HEAD" ] ; then
+    # we're not in a branch
+    exit 0
+fi
+MAIN_NAME="$(git main)"
+if [ "${HEAD_NAME}" == "${MAIN_NAME}" ] ; then
+    MAIN_TRACKS=$(git rev-parse --abbrev-ref "${MAIN_NAME}"@{upstream})
+    if [ -n "${MAIN_TRACKS}" ] ; then
+        echo "${MAIN_TRACKS}"
+    fi
+    exit 0
+fi
+DEVELOP_NAME=$(git config --get gitflow.branch.develop 2>/dev/null)
+if [ -z "${DEVELOP_NAME}" ] ; then
+    DEVELOP_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads/develop refs/remotes/origin/develop 2>/dev/null | sed 's#^origin/##' | grep '^origin/develop' | head -n 1)
+fi
+if [ -n "${DEVELOP_NAME}" ] ; then
+    if [ "${DEVELOP_NAME}" == "${MAIN_NAME}" ] ; then
+
+    fi
+fi
+if [ -n "${DEVELOP_NAME}" ] ; then
+    DEVELOP_TRACKS=$(git rev-parse --abbrev-ref "${DEVELOP_NAME}"@{upstream})
+fi
+
+
+if [ -n "${MAIN_NAME}" ] ; then
+    MAIN_TRACKS=$(git rev-parse --abbrev-ref "${MAIN_NAME}"@{upstream})
+fi
+HEAD_TRACKS=$(git rev-parse --abbrev-ref "${HEAD_NAME}"@{upstream})
+
+echo "${MAIN_TRACKS} -> ${MAIN_NAME} -> ${DEVELOP_TRACKS} -> ${DEVELOP_NAME} -> ${HEAD_TRACKS} -> ${HEAD_NAME}"

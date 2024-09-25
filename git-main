@@ -12,19 +12,22 @@ fi
 
 MAIN_NAME=$(git config --get gitflow.branch.main 2>/dev/null)
 if [ -z "${MAIN_NAME}" ] ; then
-    MAIN_NAME=$(git rev-parse --abbrev-ref --symbolic-full-name origin/HEAD 2>/dev/null | sed 's#^origin/##')
+    MAIN_NAME=$(git config --get gitflow.branch.master 2>/dev/null)
 fi
 if [ -z "${MAIN_NAME}" ] ; then
-    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^main$' )
+    MAIN_NAME=$(git rev-parse --abbrev-ref --symbolic-full-name origin/HEAD 2>/dev/null | sed 's#^origin/##' | head -n 1)
 fi
 if [ -z "${MAIN_NAME}" ] ; then
-    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^origin/main$' | sed 's#^origin/##' )
+    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^main$' | head -n 1)
 fi
 if [ -z "${MAIN_NAME}" ] ; then
-    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^master' )
+    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^origin/main$' | sed 's#^origin/##' | head -n 1)
 fi
 if [ -z "${MAIN_NAME}" ] ; then
-    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^origin/master' | sed 's#^origin/##' )
+    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^master' | head -n 1)
+fi
+if [ -z "${MAIN_NAME}" ] ; then
+    MAIN_NAME=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin 2>/dev/null | grep '^origin/master' | sed 's#^origin/##' | head -n 1)
 fi
 if [ -z "${MAIN_NAME}" ] ; then
     MAIN_NAME="main"
