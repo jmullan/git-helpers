@@ -13,13 +13,14 @@ if [ "${ARGCOUNT}" -eq 1 ] ; then
 else
     TRACKING=$(git track)
 fi
-git logdiff | tail
+git logdiff "${TRACKING}" | tail
 while [ "$(git behind "${TRACKING}")" -gt 0 ] ; do
     HEAD_SHA=$(git rev-parse "${CATCHUP_BRANCH}")
     TARGET_SHA=$(git rev-parse "${TRACKING}")
     if [ "${HEAD_SHA}" != "${TARGET_SHA}" ] ; then
         BRANCH_POINT=$(git merge-base "${TRACKING}" "${CATCHUP_BRANCH}")
-
-        git rebase "$(git rev-list "${BRANCH_POINT}..${TRACKING}" | grep -v commit | tail -n 1)" || exit 1
+        SECOND="$(git rev-list "${BRANCH_POINT}..${TRACKING}" | grep -v commit | tail -n 1)"
+        echo "Rebasing against ${SECOND}"
+        git rebase "${SECOND}" || exit 1
     fi
 done
