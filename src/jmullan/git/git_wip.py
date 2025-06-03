@@ -3,8 +3,8 @@ import logging
 
 import sys
 
-from jmullan_cmd import cmd
-from jmullan_logging import easy_logging
+from jmullan.cmd import cmd
+from jmullan.logging import easy_logging
 from jmullan.git.utils import first, run
 
 logger = logging.getLogger(__name__)
