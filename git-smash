@@ -7,7 +7,7 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 ARGCOUNT=$#
 if [ $ARGCOUNT -eq 1 ] ; then
     TARGET_BRANCH=$1
-elif:
+else
     TARGET_BRANCH=$(git config --get gitflow.branch.develop)
     if [ -z "${TARGET_BRANCH}" ] ; then
         TARGET_BRANCH=develop

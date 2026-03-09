@@ -33,8 +33,27 @@ documentation = "https://github.com/jmullan/jmullan.git_helpers"
 repository = "https://github.com/jmullan/jmullan.git_helpers"
 
 [project.scripts]
+gecos = "jmullan.git.gecos:main"
 git-main = "jmullan.git.git_main:main"
 git-wip = "jmullan.git.git_wip:main"
+git-ahead = "jmullan.git.git_ahead:main"
+git-behind = "jmullan.git.git_behind:main"
+git-branches = "jmullan.git.git_branches:main"
+git-catchup = "jmullan.git.git_catchup:main"
+git-changes = "jmullan.git.git_changes:main"
+git-defunct-remotes = "jmullan.git.git_defunct-remotes:main"
+git-diff-graph = "jmullan.git.git_diff_graph:main"
+git-exclude = "jmullan.git.git_exclude:main"
+git-from = "jmullan.git.git_from:main"
+git-logdiff = "jmullan.git.git_logdiff:main"
+git-names = "jmullan.git.git_names:main"
+git-rebasing = "jmullan.git.git_rebasing:main"
+git-sanity = "jmullan.git.git_sanity:main"
+git-smash = "jmullan.git.git_smash:main"
+git-stats = "jmullan.git.git_stats:main"
+git-step = "jmullan.git.git_step:main"
+git-timecard = "jmullan.git.git_timecard:main"
+git-track = "jmullan.git.git_track:main"
 
 [build-system]
 requires = [

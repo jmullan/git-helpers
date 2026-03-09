@@ -30,8 +30,6 @@ def check(options):
 
 
 def main():
-    pass
-
     parser = argparse.ArgumentParser()
     parser.add_argument("--uid", dest="uid", help="Numerical user ID", default=None)
     parser.add_argument(

@@ -7,7 +7,6 @@ GIT_REMOTE=$(git remote)
 if [ -z "$GIT_REMOTE" ] ; then
     exit 1;
 fi
-GIT_REBASE=$(git rebasing)
 ARGCOUNT=$#
 if [ $ARGCOUNT -eq 1 ] ; then
     REMOTE_BRANCH=$1
@@ -20,6 +19,7 @@ if [ $ARGCOUNT -eq 2 ] ; then
     git branch --set-upstream-to "${LOCAL_BRANCH}" "${REMOTE_BRANCH}";
     exit;
 fi
+GIT_REBASE=$(git rebasing)
 if [ -z "${GIT_REBASE}" ] ; then
     TRACKING=$(git rev-parse --abbrev-ref --symbolic-full-name "@{u}" 2>/dev/null || echo)
     if [ "$TRACKING" == "@{u}" ] ; then
