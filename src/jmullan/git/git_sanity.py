@@ -12,7 +12,6 @@ class GitSanityMain(cmd.Main):
     def __init__(self):
         super().__init__()
 
-
     def setup(self):
         super().setup()
         if self.args.verbose:

@@ -4,11 +4,8 @@ import os
 import pathlib
 import subprocess
 from argparse import ArgumentParser
-from typing import Any
 
 import pygit2
-from pygit2 import Repository, Remote
-from requests import delete
 
 logger = logging.getLogger(__name__)
 
@@ -33,8 +30,7 @@ def get_repository() -> pygit2.Repository | None:
     repository_path = pygit2.discover_repository(current_working_directory)
     if repository_path is not None:
         return pygit2.Repository(repository_path)
-    else:
-        return None
+    return None
 
 
 def require_repository() -> pygit2.Repository:
@@ -50,11 +46,13 @@ def run(*args: str) -> list[str]:
         return run(*(args[0].split(" ")))
     logger.debug("Running %s", " ".join(args))
     with subprocess.Popen(args, stdout=subprocess.PIPE) as proc:
-        return proc.stdout.read().decode("UTF8").strip().split("\n")
+        if proc.stdout is not None:
+            return proc.stdout.read().decode("UTF8").strip().split("\n")
+    return []
 
 
 def first(strings: list[str]) -> str:
-    for line in (strings or []):
+    for line in strings or []:
         if len(line):
             return line
     return ""
@@ -97,12 +95,11 @@ class LineCounts:
 def as_rev(rev: GitRev | str) -> str:
     if isinstance(rev, GitRev) and hasattr(rev, "shortcut") and rev.shortcut is not None:
         return rev.shortcut
-    else:
-        return f"{rev}"
+    return f"{rev}"
 
 
 def count_commits(from_rev: str, to_rev: str) -> CommitCounts:
-    """git rev-list --left-right "$FROM...$TO" | grep '^<' | wc -l | awk '{print $1}'"""
+    """Git rev-list --left-right "$FROM...$TO" | grep '^<' | wc -l | awk '{print $1}'"""
     command = ["git", "rev-list", "--left-right", f"{as_rev(from_rev)}...{as_rev(to_rev)}"]
     lines = run(*command)
     behind = 0
@@ -118,7 +115,7 @@ def count_commits(from_rev: str, to_rev: str) -> CommitCounts:
 
 
 def count_lines(from_rev: str, to_rev: str) -> LineCounts:
-    """git rev-list --left-right "$FROM...$TO" | grep '^<' | wc -l | awk '{print $1}'"""
+    """Git rev-list --left-right "$FROM...$TO" | grep '^<' | wc -l | awk '{print $1}'"""
     command = ["git", "diff", "--numstat", f"{as_rev(from_rev)}", f"{as_rev(to_rev)}"]
     lines = run(*command)
     adds = 0
@@ -160,10 +157,9 @@ def get_branch_trackings() -> dict[str, str]:
                 logger.warning("Bad branch mapping line (extra tab) %s", line)
             mappings[short] = upstream
     return mappings
-ALLOWED_BRANCHES = [
-    "main",
-    "master"
-]
+
+
+ALLOWED_BRANCHES = ["main", "master"]
 
 
 def fetch_all():
@@ -174,17 +170,22 @@ def get_remote_branches(remote: str):
     return run("git", "for-each-ref", "--format=%(refname:short)", f"refs/remotes/{remote}")
 
 
-def get_default_branch():
+def get_default_branch() -> str | None:
+    """Ask git what branch is configured as the default."""
     return first_empty_as_none(run("git", "config", "--get", "init.defaultBranch"))
 
 
-def get_remote_head(remote: str):
-    # git rev-parse --abbrev-ref --symbolic-full-name refs/remotes/{remote}/HEAD
+def get_remote_head(remote: str) -> str | None:
+    """Try to find the HEAD of the remote (the main branch)."""
     return rev_parse(f"refs/remotes/{remote}/HEAD")
 
 
-
 def find_first(candidates: list[str], allowed: list[str], remote: str | None) -> str | None:
+    """Find the first string that matches one of the allowed strings.
+
+    If a remote is passed in, fall back to one of the candidates if it is
+    prefixed with the remote.
+    """
     if remote is not None:
         remote_prefix = f"{remote}/"
     else:
@@ -201,7 +202,8 @@ def find_first(candidates: list[str], allowed: list[str], remote: str | None) ->
     return None
 
 
-def find_remote(repository: Repository, remote_name: str) -> Remote | None:
+def find_remote(repository: pygit2.Repository, remote_name: str) -> pygit2.Remote | None:
+    """Given a remote name, see if it is in the repository."""
     if remote_name is None:
         return None
     for remote_candidate in repository.remotes:
@@ -212,8 +214,8 @@ def find_remote(repository: Repository, remote_name: str) -> Remote | None:
     return None
 
 
-
-def best_remote(repository: Repository) -> Remote | None:
+def best_remote(repository: pygit2.Repository) -> pygit2.Remote | None:
+    """Find the probable main remote (origin, or upstream)."""
     for remote_name in ["origin", "upstream"]:
         remote = find_remote(repository, remote_name)
         if remote is not None:
@@ -222,45 +224,53 @@ def best_remote(repository: Repository) -> Remote | None:
 
 
 def get_main(remote_name: str | None = None) -> str | None:
+    """Find what is the main branch."""
     repo = require_repository()
-    logger.debug(f"Found a repo {repo=}")
+    logger.debug("Found a repo %s", repo)
     if remote_name is not None:
         remote = find_remote(repo, remote_name)
-        logger.debug(f"Found a remote {remote=}")
+        logger.debug("Found a remote %s", remote)
     else:
         remote = best_remote(repo)
 
     gitflow_main = get_git_flow_main()
     default_branch = get_default_branch()
     local_branches = get_local_branches()
-    remote_head = get_remote_head(remote.name)
-
+    if remote is not None and remote.name is not None:
+        remote_head = get_remote_head(remote.name)
+    else:
+        remote_head = None
     if remote_head is not None:
-        remote_head_branch = remote_head.removeprefix(f"{remote.name}/")
+        remote_head_branch = remote_head.removeprefix(f"{remote_name}/")
     else:
         remote_head_branch = None
 
     if gitflow_main is not None:
         if remote_head_branch is not None and gitflow_main != remote_head_branch:
             logger.warning(
-                f"gitflow.branch.main={gitflow_main} does not equal {remote.name}/HEAD {remote_head} {remote_head_branch}")
+                "gitflow.branch.main=%s does not equal %s/HEAD %s %s",
+                gitflow_main,
+                remote_name,
+                remote_head,
+                remote_head_branch,
+            )
         if gitflow_main not in local_branches:
-            logger.warning(
-                f"gitflow.branch.main={gitflow_main} does not exist")
+            logger.warning("gitflow.branch.main=%s does not exist", gitflow_main)
         else:
             return gitflow_main
 
     if remote_head_branch is not None:
         if remote_head_branch in local_branches:
             return remote_head_branch
-        else:
-            logger.warning(
-                "{remote}/HEAD {remote_head} {remote_head_branch} does not exist locally")
+        logger.warning("{remote}/HEAD {remote_head} {remote_head_branch} does not exist locally")
     else:
         return remote_head
 
-    remote_branches = get_remote_branches(remote_name)
-    maybe_main = find_first(remote_branches, ALLOWED_BRANCHES, remote)
+    if remote_name is not None:
+        remote_branches = get_remote_branches(remote_name)
+        maybe_main = find_first(remote_branches, ALLOWED_BRANCHES, remote)
+    else:
+        maybe_main = None
     if maybe_main is not None:
         return maybe_main
 
@@ -273,10 +283,8 @@ def get_main(remote_name: str | None = None) -> str | None:
     return "main"
 
 
-def get_heads(repository: Repository) -> list[str]:
-    """
-    HEADS=$(find ${GIT_DIR}/logs/refs/heads -mindepth 1 -type f | sed "s#${GIT_DIR}/logs/refs/heads/##" | sort)
-    """
+def get_heads(repository: pygit2.Repository) -> list[str]:
+    """Find the heads that git knows about."""
     heads = []
     refs_heads_path = pathlib.Path(repository.path) / "logs" / "refs" / "heads"
     if refs_heads_path.is_dir():
@@ -285,7 +293,9 @@ def get_heads(repository: Repository) -> list[str]:
                 heads.append(file_path.relative_to(refs_heads_path).as_posix())
     return heads
 
-def add_remote_argument(parser: ArgumentParser, repository: Repository | None = None) -> None:
+
+def add_remote_argument(parser: ArgumentParser, repository: pygit2.Repository | None = None) -> None:
+    """Tack a remote option to the parser."""
     if repository is None:
         repository = get_repository()
     if repository is not None:
@@ -298,18 +308,14 @@ def add_remote_argument(parser: ArgumentParser, repository: Repository | None = 
                 default = "origin"
             else:
                 default = first(remote_names)
-        parser.add_argument(
-            "--remote",
-            dest="remote",
-            default=default,
-            choices=remote_names,
-            help="use this remote"
-        )
+        parser.add_argument("--remote", dest="remote", default=default, choices=remote_names, help="use this remote")
 
 
-def get_git_flow_main():
+def get_git_flow_main() -> str | None:
+    """Try to find what branch has been configured as main."""
     return first_empty_as_none(run("git", "config", "--get", "gitflow.branch.main"))
 
 
-def get_git_flow_develop():
+def get_git_flow_develop() -> str | None:
+    """Try to find what branch has been configured as develop."""
     return first_empty_as_none(run("git", "config", "--get", "gitflow.branch.develop"))

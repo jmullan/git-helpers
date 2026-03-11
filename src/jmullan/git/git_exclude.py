@@ -22,7 +22,7 @@ def git_exclude(patterns: list[str]) -> None:
         exit(1)
     info_dir = repo_path / "info"
     info_dir.mkdir(exist_ok=True)
-    exclude_file =  info_dir / "exclude"
+    exclude_file = info_dir / "exclude"
     needs_new_line = False
     if exclude_file.is_file():
         text = exclude_file.read_text(encoding="utf-8")

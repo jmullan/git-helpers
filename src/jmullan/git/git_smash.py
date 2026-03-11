@@ -8,11 +8,9 @@ from jmullan.logging import easy_logging
 logger = logging.getLogger(__name__)
 
 
-
 class GitSmashMain(cmd.Main):
     def __init__(self):
         super().__init__()
-
 
     def setup(self):
         super().setup()

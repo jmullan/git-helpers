@@ -32,9 +32,7 @@ def check(options):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--uid", dest="uid", help="Numerical user ID", default=None)
-    parser.add_argument(
-        "--username", dest="username", help="Use this username", default=None
-    )
+    parser.add_argument("--username", dest="username", help="Use this username", default=None)
     parser.add_argument(
         "--fullname",
         dest="fullname",

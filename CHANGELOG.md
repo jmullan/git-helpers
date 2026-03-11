@@ -1,82 +1,119 @@
 ### 2022-10
+
 Jesse Mullan
-* Add option to break up changelog by month
+
+- Add option to break up changelog by month
 
 ### 2022-09
+
 Jesse Mullan
-* Update log_to_changelog
+
+- Update log_to_changelog
 
 ### 2022-08
+
 Jesse Mullan
-* git-main and git-changelog
+
+- git-main and git-changelog
 
 ### 2022-05
+
 Jesse Mullan
-* Update git-track to support main
-* Update gecos
+
+- Update git-track to support main
+- Update gecos
 
 ### 2022-01
+
 Jesse Mullan
-* various
+
+- various
 
 ### 2020-08
+
 Jesse Mullan
-* Add git-catchup (experimental)
+
+- Add git-catchup (experimental)
 
 ### 2019-10
+
 Jesse Mullan
-* git smash
+
+- git smash
 
 ### 2018-01
+
 Jesse Mullan
-* Add git-stats
+
+- Add git-stats
 
 ### 2016-01
+
 Jesse Mullan
-* Do not check for remote stuff in git-sanity if there is no remote
+
+- Do not check for remote stuff in git-sanity if there is no remote
 
 ### 2015-12
+
 Jesse Mullan
-* Add git exclude
+
+- Add git exclude
 
 ### 2015-10
+
 Jesse Mullan
-* Update git rebasing text
+
+- Update git rebasing text
 
 ### 2015-09
+
 Jesse Mullan
-* Add a missing space
+
+- Add a missing space
 
 ### 2015-08
+
 Jesse Mullan
-* Look for existing EMAIL before trying to guess
+
+- Look for existing EMAIL before trying to guess
 
 ### 2015-06
+
 Jesse Mullan
-* Add git-wip
+
+- Add git-wip
 
 ### 2014-11
+
 Jesse Mullan
-* Allow configuration of ignored branch differences
+
+- Allow configuration of ignored branch differences
 
 ### 2014-10
+
 Jesse Mullan
-* fix argument ordering for find
-* Add git-branches script
+
+- fix argument ordering for find
+- Add git-branches script
 
 ### 2014-05
+
 Jesse Mullan
-* checkpoint
+
+- checkpoint
 
 ### 2014-04
+
 Jesse Mullan
-* Add git-changes to examine the changes in one revision without redundant typing
-* Check if master is behind origin/master
+
+- Add git-changes to examine the changes in one revision without redundant typing
+- Check if master is behind origin/master
 
 ### 2014-03
-Jesse Mullan
-* Also check develop against origin/master
-* If there is a develop and a master branch, check if develop is behind master
-* Add arguments to git ahead and behind
-* Initial code
 
+Jesse Mullan
+
+- Also check develop against origin/master
+- If there is a develop and a master branch, check if develop is behind master
+- Add arguments to git ahead and behind
+- Initial code

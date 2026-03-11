@@ -5,12 +5,17 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import rev_parse, run, \
-    require_repository, add_remote_argument, \
-    get_main, find_remote, fetch_all
+from jmullan.git.utils import (
+    add_remote_argument,
+    fetch_all,
+    find_remote,
+    get_main,
+    require_repository,
+    rev_parse,
+    run,
+)
 
 logger = logging.getLogger(__name__)
-
 
 
 def refresh(remote: str):
@@ -21,20 +26,15 @@ def refresh(remote: str):
 
     logger.debug(f"Refreshing the main branch from {remote}")
     remote_head = rev_parse(f"refs/remotes/{remote}/HEAD")
-    if len(remote_head):
+    if remote_head is not None and len(remote_head) > 0:
         logger.debug(f"Found remote head {remote_head}")
-        run(f"git", "remote", "set-head",  f"{remote}", "-a")
+        run("git", "remote", "set-head", f"{remote}", "-a")
 
 
 class GitMainMain(cmd.Main):
     def __init__(self):
         super().__init__()
-        self.parser.add_argument(
-            "--refresh",
-            action="store_true",
-            default=False,
-            help='Check for a new main branch'
-        )
+        self.parser.add_argument("--refresh", action="store_true", default=False, help="Check for a new main branch")
         add_remote_argument(self.parser)
 
     def setup(self):

@@ -5,7 +5,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import run, HEAD
+from jmullan.git.utils import HEAD, run
 
 logger = logging.getLogger(__name__)
 
@@ -13,12 +13,7 @@ logger = logging.getLogger(__name__)
 class GitChangesMain(cmd.Main):
     def __init__(self):
         super().__init__()
-        self.parser.add_argument(
-            "rev",
-            default=HEAD,
-            nargs="?",
-            help="Changes included in this revision"
-        )
+        self.parser.add_argument("rev", default=HEAD, nargs="?", help="Changes included in this revision")
 
     def setup(self):
         super().setup()

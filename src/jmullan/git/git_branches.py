@@ -3,19 +3,27 @@ import logging
 import pathlib
 import sys
 
-from jmullan.cmd import cmd
-from jmullan.logging import easy_logging
 from pygit2 import Repository
 
-from jmullan.git.utils import require_repository, get_local_branches, \
-    get_git_flow_main, get_git_flow_develop, get_branch_trackings, \
-    first_empty_as_none, run, count_commits, get_main
+from jmullan.cmd import cmd
+from jmullan.logging import easy_logging
+
+from jmullan.git.utils import (
+    count_commits,
+    first_empty_as_none,
+    get_branch_trackings,
+    get_git_flow_develop,
+    get_local_branches,
+    get_main,
+    require_repository,
+    run,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def get_remote_to_branches(repository: Repository) -> dict[str, list[str]]:
-    remote_to_branches = {}
+    remote_to_branches: dict[str, list[str]] = {}
     refs_remotes_path = pathlib.Path(repository.path) / "logs" / "refs" / "remotes"
     for remote in repository.remotes:
         if remote.name not in remote_to_branches:
@@ -33,8 +41,7 @@ def get_ref_date(ref: str) -> str | None:
 
 
 def branches(show_remotes: bool):
-    """
-    _MAIN=$(git main)
+    """_MAIN=$(git main)
     MAIN=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^'"${_MAIN}"'$')
     DEVELOP=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^develop$')
     IFS=$'\n'
@@ -76,6 +83,7 @@ def branches(show_remotes: bool):
             bare_remote_branches[remote_branch] = remote_branch.removeprefix(prefix)
         if show_remotes:
             filtered_branches = filtered_branches + remote_branches
+    remote_branches = list(bare_remote_branches.keys())
     main = get_main()
     if main is None:
         main = "main"
@@ -88,11 +96,13 @@ def branches(show_remotes: bool):
         if bare_branch != branch:
             branch_from = None
         elif bare_branch.startswith("feature/") and bare_branch != develop:
-                branch_from = develop
+            branch_from = develop
         elif branch in trackings:
             branch_from = trackings[branch]
         elif bare_branch in trackings:
             branch_from = trackings[bare_branch]
+        ahead: str | int | None = None
+        behind: str | int | None = None
         if branch_from is None or branch_from not in all_branches:
             ahead = ""
             behind = ""
@@ -107,7 +117,7 @@ def branches(show_remotes: bool):
             else:
                 branch_from = "upstream gone"
         elif branch_from not in all_branches:
-            branch_from = f'{branch_from} : upstream gone!'
+            branch_from = f"{branch_from} : upstream gone!"
         print(f"{branch}\t-{behind}\t+{ahead}\t{commit_date}\t({branch_from})")
 
 
@@ -119,9 +129,8 @@ class GitBranchesMain(cmd.Main):
             dest="include_remote",
             action="store_true",
             default=False,
-            help='Also look at remotes for branches'
+            help="Also look at remotes for branches",
         )
-
 
     def setup(self):
         super().setup()
@@ -135,6 +144,7 @@ class GitBranchesMain(cmd.Main):
     def main(self):
         super().main()
         branches(self.args.include_remote)
+
 
 def main():
     GitBranchesMain().main()

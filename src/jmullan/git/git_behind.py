@@ -5,8 +5,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import get_repository, HEAD, UPSTREAM, WORKING_TREE, \
-    STAGED, count_commits
+from jmullan.git.utils import HEAD, STAGED, UPSTREAM, WORKING_TREE, count_commits, get_repository
 
 logger = logging.getLogger(__name__)
 
@@ -20,19 +19,9 @@ class GitBehindMain(cmd.Main):
         super().__init__()
         group = self.parser.add_argument_group()
 
-        group.add_argument(
-            "to_rev",
-            default=UPSTREAM,
-            help="use this remote."
-        )
+        group.add_argument("to_rev", default=UPSTREAM, help="use this remote.")
 
-        group.add_argument(
-            "from_rev",
-            nargs="?",
-            default=HEAD,
-            help="use this remote"
-        )
-
+        group.add_argument("from_rev", nargs="?", default=HEAD, help="use this remote")
 
     def setup(self):
         super().setup()

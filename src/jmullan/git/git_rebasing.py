@@ -6,17 +6,16 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import get_repository, \
-    count_commits
+from jmullan.git.utils import count_commits, get_repository
 
 logger = logging.getLogger(__name__)
-
 
 
 def get_rebasing() -> str | None:
     repository = get_repository()
     if repository is None:
-        return logger.debug("No repository found")
+        logger.debug("No repository found")
+        return None
     repo_path = pathlib.Path(repository.path)
     if (repo_path / "rebase-merge").exists():
         if (repo_path / "rebase-merge" / "interactive").exists():
@@ -30,8 +29,8 @@ def get_rebasing() -> str | None:
         if (repo_path / "rebase-apply" / "applying").exists():
             return "APPLYING REBASE"
         return "REBASING"
-    return logger.debug("Not rebasing")
-
+    logger.debug("Not rebasing")
+    return None
 
 
 class GitRebasingMain(cmd.Main):
@@ -53,6 +52,7 @@ class GitRebasingMain(cmd.Main):
         rebasing = get_rebasing()
         if rebasing is not None:
             print(rebasing)
+
 
 def main():
     GitRebasingMain().main()

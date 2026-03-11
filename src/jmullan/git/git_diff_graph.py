@@ -3,11 +3,12 @@ import logging
 import sys
 
 from colorist import Color
+
 from jmullan.cmd import cmd
 from jmullan.cmd.auto_config import add_color_arguments
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import count_lines, UPSTREAM, HEAD
+from jmullan.git.utils import HEAD, UPSTREAM, count_lines
 
 logger = logging.getLogger(__name__)
 
@@ -21,20 +22,9 @@ class GitDiffGraphMain(cmd.Main):
         super().__init__()
         add_color_arguments(self.parser)
 
-        self.parser.add_argument(
-            "to_rev",
-            nargs="?",
-            default=UPSTREAM,
-            help="use this remote."
-        )
+        self.parser.add_argument("to_rev", nargs="?", default=UPSTREAM, help="use this remote.")
 
-        self.parser.add_argument(
-            "from_rev",
-            nargs="?",
-            default=HEAD,
-            help="use this remote"
-        )
-
+        self.parser.add_argument("from_rev", nargs="?", default=HEAD, help="use this remote")
 
     def setup(self):
         super().setup()
@@ -66,10 +56,6 @@ class GitDiffGraphMain(cmd.Main):
             print(f"{Color.GREEN}{adds}{Color.RED}{deletes}{Color.OFF}")
         else:
             print(f"{adds}{deletes}")
-
-
-
-
 
 
 def main():

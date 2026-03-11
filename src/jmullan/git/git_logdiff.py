@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.13
-import difflib
 import itertools
 import logging
 import sys
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 def short_log(rev: str) -> list[str]:
     return run("git", "log", "--first-parent", "--pretty=format:%h %ad %s", "--date=short", f"{rev}")
 
+
 def print_columns(left: str | None, right: str | None) -> None:
     if left is None:
         left = ""
@@ -22,12 +22,13 @@ def print_columns(left: str | None, right: str | None) -> None:
         right = ""
     print(f"{left[:40]:<40} {right[:40]:<40}")
 
+
 def git_logdiff(from_rev: str, to_rev: str) -> None:
     from_lines = short_log(from_rev)
     to_lines = short_log(to_rev)
 
     last_common = None
-    for i, (a, b) in enumerate(zip(reversed(from_lines), reversed(to_lines)), 1):
+    for i, (a, b) in enumerate(zip(reversed(from_lines), reversed(to_lines), strict=False), 1):
         if a != b:
             break
         last_common = i
@@ -55,22 +56,12 @@ class GitLogDiffMain(cmd.Main):
     def __init__(self):
         super().__init__()
         best_main = get_main()
-        self.parser.add_argument(
-            "from_rev",
-            nargs="?",
-            default=HEAD,
-            help="use this remote"
-        )
+        self.parser.add_argument("from_rev", nargs="?", default=HEAD, help="use this remote")
         if best_main is not None:
             default_to = best_main
         else:
             default_to = UPSTREAM
-        self.parser.add_argument(
-            "to_rev",
-            nargs="?",
-            default=default_to,
-            help="use this remote."
-        )
+        self.parser.add_argument("to_rev", nargs="?", default=default_to, help="use this remote.")
 
     def setup(self):
         super().setup()
@@ -84,6 +75,7 @@ class GitLogDiffMain(cmd.Main):
     def main(self):
         super().main()
         git_logdiff(self.args.from_rev, self.args.to_rev)
+
 
 def main():
     GitLogDiffMain().main()

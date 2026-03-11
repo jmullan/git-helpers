@@ -6,13 +6,12 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import run, require_repository, GitRev
+from jmullan.git.utils import GitRev, require_repository, run
 
 logger = logging.getLogger(__name__)
 
 
 def get_names(rev: str | None, only_exists: bool, only_missing: bool):
-
     repo = require_repository()
     logger.debug(f"Found a repo {repo=}")
     if rev is not None:
@@ -36,29 +35,14 @@ def get_names(rev: str | None, only_exists: bool, only_missing: bool):
                 print(changed_file)
     exit(0)
 
+
 class GitNamesMain(cmd.Main):
     def __init__(self):
         super().__init__()
         filter_files = self.parser.add_mutually_exclusive_group()
-        filter_files.add_argument(
-            "--only-exists",
-            dest="only_exists",
-            action="store_true",
-            default=False
-        )
-        filter_files.add_argument(
-            "--only-missing",
-            dest="only_missing",
-            action="store_true",
-            default=False
-        )
-        self.parser.add_argument(
-            "rev",
-            nargs="?",
-            default=None,
-            help="Against this"
-        )
-
+        filter_files.add_argument("--only-exists", dest="only_exists", action="store_true", default=False)
+        filter_files.add_argument("--only-missing", dest="only_missing", action="store_true", default=False)
+        self.parser.add_argument("rev", nargs="?", default=None, help="Against this")
 
     def setup(self):
         super().setup()

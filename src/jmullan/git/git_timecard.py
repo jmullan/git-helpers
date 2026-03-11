@@ -7,7 +7,7 @@ from datetime import datetime
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import get_repository, first_empty_as_none, run
+from jmullan.git.utils import first_empty_as_none, get_repository, run
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +16,6 @@ class GitTimeCard(cmd.Main):
     def __init__(self):
         super().__init__()
         self.parser.add_argument("extras", nargs="*")
-
 
     def setup(self):
         super().setup()
@@ -53,6 +52,7 @@ class GitTimeCard(cmd.Main):
         line = " ".join(f"{x}" for x in (work_dir_name, head_name, today, *extras))
         with log_file_path.open("a") as handle:
             handle.write(f"{line}")
+
 
 def main():
     GitTimeCard().main()
