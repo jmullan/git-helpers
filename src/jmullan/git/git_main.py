@@ -19,7 +19,13 @@ logger = logging.getLogger(__name__)
 class GitMainMain(cmd.Main):
     def __init__(self):
         super().__init__()
-        self.parser.add_argument("--refresh", action="store_true", default=False, help="Check for a new main branch")
+        self.parser.add_argument(
+            "--refresh",
+            dest="refresh_remote_head",
+            action="store_true",
+            default=False,
+            help="Check for a new main branch"
+        )
         add_remote_argument(self.parser)
 
     def setup(self):
