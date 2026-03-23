@@ -16,10 +16,8 @@ logger = logging.getLogger(__name__)
 def get_main(remote_name: str | None = None) -> str | None:
     """Find what is the main branch."""
     repo = require_repository()
-    logger.debug("Found a repo %s", repo)
     if remote_name is not None:
         remote = find_remote(repo, remote_name)
-        logger.debug("Found a remote %s", remote)
     else:
         remote = best_remote(repo)
 
@@ -39,7 +37,6 @@ def get_main(remote_name: str | None = None) -> str | None:
             remote_head_branch = remote_head
     else:
         remote_head_branch = None
-
     if gitflow_main is not None:
         if remote_head_branch is not None and gitflow_main != remote_head_branch:
             logger.warning(
@@ -58,8 +55,6 @@ def get_main(remote_name: str | None = None) -> str | None:
         if remote_head_branch in local_branches:
             return remote_head_branch
         logger.warning("%s/HEAD %s %s does not exist locally", remote.name, remote_head, remote_head_branch)
-    else:
-        return remote_head
 
     if remote_name is not None:
         remote_branches = get_remote_branches(remote_name)
@@ -75,6 +70,8 @@ def get_main(remote_name: str | None = None) -> str | None:
     maybe_main = find_first(local_branches, ALLOWED_BRANCHES, None)
     if maybe_main is not None:
         return maybe_main
+    if len(local_branches) == 1:
+        return local_branches[0]
     return "main"
 
 
@@ -368,6 +365,9 @@ def fast_forward(repository: Repository, branch_ref: GitRev | str):
         resolved = branch_ref.resolved
     else:
         resolved = branch_ref
+    if resolved is None:
+        logger.error("Could not resolve %s", branch_ref)
+        return
     branch = repository.branches.get(resolved)
     if not branch:
         logger.error("Could not find branch ref %s when resolved to %s",
