@@ -7,28 +7,13 @@ from jmullan.logging import easy_logging
 
 from jmullan.git.utils import (
     add_remote_argument,
-    fetch_all,
     find_remote,
     get_main,
     require_repository,
-    rev_parse,
-    run,
+    refresh_remote_head
 )
 
 logger = logging.getLogger(__name__)
-
-
-def refresh(remote: str):
-    if remote is None:
-        logger.warning("Cannot refresh no remote")
-        exit(1)
-    fetch_all()
-
-    logger.debug(f"Refreshing the main branch from {remote}")
-    remote_head = rev_parse(f"refs/remotes/{remote}/HEAD")
-    if remote_head is not None and len(remote_head) > 0:
-        logger.debug(f"Found remote head {remote_head}")
-        run("git", "remote", "set-head", f"{remote}", "-a")
 
 
 class GitMainMain(cmd.Main):
@@ -56,12 +41,12 @@ class GitMainMain(cmd.Main):
         exit(0)
 
     def _main(self):
-        if self.args.refresh:
+        if self.args.refresh_remote_head:
             repo = require_repository()
             logger.debug(f"Found a repo {repo=}")
             remote = find_remote(repo, self.args.remote)
             logger.debug(f"Found a remote {remote=}")
-            refresh(remote.name)
+            refresh_remote_head(remote.name)
 
         main_branch = get_main(self.args.remote)
         if main_branch is None:

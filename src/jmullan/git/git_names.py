@@ -6,7 +6,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import GitRev, require_repository, run
+from jmullan.git.utils import require_repository, run, as_rev
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +15,7 @@ def get_names(rev: str | None, only_exists: bool, only_missing: bool):
     repo = require_repository()
     logger.debug(f"Found a repo {repo=}")
     if rev is not None:
-        if isinstance(rev, GitRev):
-            rev = rev.shortcut
-        args = ["git", "diff", "--name-only", rev]
+        args = ["git", "diff", "--name-only", as_rev(rev)]
     else:
         args = ["git", "diff", "--name-only"]
     lines = run(*(f"{arg}" for arg in args))

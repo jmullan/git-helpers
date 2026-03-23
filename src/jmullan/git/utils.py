@@ -1,28 +1,109 @@
 import dataclasses
+import functools
 import logging
 import os
 import pathlib
 import subprocess
 from argparse import ArgumentParser
+from typing import Callable
 
 import pygit2
+from pygit2 import Repository
 
 logger = logging.getLogger(__name__)
+
+
+def get_main(remote_name: str | None = None) -> str | None:
+    """Find what is the main branch."""
+    repo = require_repository()
+    logger.debug("Found a repo %s", repo)
+    if remote_name is not None:
+        remote = find_remote(repo, remote_name)
+        logger.debug("Found a remote %s", remote)
+    else:
+        remote = best_remote(repo)
+
+    gitflow_main = get_git_flow_main()
+    default_branch = get_default_branch()
+    local_branches = get_local_branches()
+    if remote is not None and remote.name is not None:
+        if remote_name is None:
+            remote_name = remote.name
+        remote_head = get_remote_head(remote.name)
+    else:
+        remote_head = None
+    if remote_head is not None:
+        if remote_name is not None:
+            remote_head_branch = remote_head.removeprefix(f"{remote_name}/")
+        else:
+            remote_head_branch = remote_head
+    else:
+        remote_head_branch = None
+
+    if gitflow_main is not None:
+        if remote_head_branch is not None and gitflow_main != remote_head_branch:
+            logger.warning(
+                "gitflow.branch.main=%s does not equal %s/HEAD %s %s",
+                gitflow_main,
+                remote_name,
+                remote_head,
+                remote_head_branch,
+            )
+        if gitflow_main not in local_branches:
+            logger.warning("gitflow.branch.main=%s does not exist", gitflow_main)
+        else:
+            return gitflow_main
+
+    if remote_head_branch is not None:
+        if remote_head_branch in local_branches:
+            return remote_head_branch
+        logger.warning("%s/HEAD %s %s does not exist locally", remote.name, remote_head, remote_head_branch)
+    else:
+        return remote_head
+
+    if remote_name is not None:
+        remote_branches = get_remote_branches(remote_name)
+        maybe_main = find_first(remote_branches, ALLOWED_BRANCHES, remote)
+    else:
+        maybe_main = None
+    if maybe_main is not None:
+        return maybe_main
+
+    if default_branch is not None and default_branch in local_branches:
+        return default_branch
+
+    maybe_main = find_first(local_branches, ALLOWED_BRANCHES, None)
+    if maybe_main is not None:
+        return maybe_main
+    return "main"
 
 
 @dataclasses.dataclass
 class GitRev:
     name: str
-    shortcut: str | None = None
+    resolver: str | Callable[..., str | None] = None
 
     def __str__(self):
         return self.name
+
+    @functools.cached_property
+    def resolved(self):
+        if self.resolver is None:
+            return None
+        if isinstance(self.resolver, str):
+            resolved = rev_parse_short(self.resolver)
+            if resolved is not None:
+                return resolved
+            else:
+                return self.resolver
+        return self.resolver()
 
 
 HEAD = GitRev("HEAD", "HEAD")
 WORKING_TREE = GitRev("working tree")
 STAGED = GitRev("--staged")
 UPSTREAM = GitRev("upstream", "@{u}")
+MAIN = GitRev("MAIN", get_main)
 
 
 def get_repository() -> pygit2.Repository | None:
@@ -93,8 +174,8 @@ class LineCounts:
 
 
 def as_rev(rev: GitRev | str) -> str:
-    if isinstance(rev, GitRev) and hasattr(rev, "shortcut") and rev.shortcut is not None:
-        return rev.shortcut
+    if isinstance(rev, GitRev) and rev.resolved is not None:
+        return rev.resolved
     return f"{rev}"
 
 
@@ -136,8 +217,12 @@ def count_lines(from_rev: str, to_rev: str) -> LineCounts:
     return LineCounts(deletes, adds)
 
 
-def rev_parse(ref_name: str) -> str | None:
-    return first(run(f"git rev-parse --abbrev-ref --symbolic-full-name {as_rev(ref_name)}"))
+def rev_parse_short(ref_name: str) -> str | None:
+    return first(run("git", "rev-parse", "--abbrev-ref", ref_name))
+
+
+def rev_parse_full(ref_name: str) -> str | None:
+    return first(run("git", "rev-parse", "--abbrev-ref", "--symbolic-full-name", ref_name))
 
 
 def get_local_branches() -> list[str]:
@@ -162,11 +247,15 @@ def get_branch_trackings() -> dict[str, str]:
 ALLOWED_BRANCHES = ["main", "master"]
 
 
-def fetch_all():
+def fetch_all() -> list[str]:
     return run("git", "fetch", "--all")
 
 
-def get_remote_branches(remote: str):
+def fetch_remote(remote_name: str) -> list[str]:
+    return run("git", "fetch", remote_name)
+
+
+def get_remote_branches(remote: str) -> list[str]:
     return run("git", "for-each-ref", "--format=%(refname:short)", f"refs/remotes/{remote}")
 
 
@@ -177,7 +266,7 @@ def get_default_branch() -> str | None:
 
 def get_remote_head(remote: str) -> str | None:
     """Try to find the HEAD of the remote (the main branch)."""
-    return rev_parse(f"refs/remotes/{remote}/HEAD")
+    return rev_parse_full(f"refs/remotes/{remote}/HEAD")
 
 
 def find_first(candidates: list[str], allowed: list[str], remote: str | None) -> str | None:
@@ -223,66 +312,6 @@ def best_remote(repository: pygit2.Repository) -> pygit2.Remote | None:
     return None
 
 
-def get_main(remote_name: str | None = None) -> str | None:
-    """Find what is the main branch."""
-    repo = require_repository()
-    logger.debug("Found a repo %s", repo)
-    if remote_name is not None:
-        remote = find_remote(repo, remote_name)
-        logger.debug("Found a remote %s", remote)
-    else:
-        remote = best_remote(repo)
-
-    gitflow_main = get_git_flow_main()
-    default_branch = get_default_branch()
-    local_branches = get_local_branches()
-    if remote is not None and remote.name is not None:
-        remote_head = get_remote_head(remote.name)
-    else:
-        remote_head = None
-    if remote_head is not None:
-        remote_head_branch = remote_head.removeprefix(f"{remote_name}/")
-    else:
-        remote_head_branch = None
-
-    if gitflow_main is not None:
-        if remote_head_branch is not None and gitflow_main != remote_head_branch:
-            logger.warning(
-                "gitflow.branch.main=%s does not equal %s/HEAD %s %s",
-                gitflow_main,
-                remote_name,
-                remote_head,
-                remote_head_branch,
-            )
-        if gitflow_main not in local_branches:
-            logger.warning("gitflow.branch.main=%s does not exist", gitflow_main)
-        else:
-            return gitflow_main
-
-    if remote_head_branch is not None:
-        if remote_head_branch in local_branches:
-            return remote_head_branch
-        logger.warning("{remote}/HEAD {remote_head} {remote_head_branch} does not exist locally")
-    else:
-        return remote_head
-
-    if remote_name is not None:
-        remote_branches = get_remote_branches(remote_name)
-        maybe_main = find_first(remote_branches, ALLOWED_BRANCHES, remote)
-    else:
-        maybe_main = None
-    if maybe_main is not None:
-        return maybe_main
-
-    if default_branch is not None and default_branch in local_branches:
-        return default_branch
-
-    maybe_main = find_first(local_branches, ALLOWED_BRANCHES, None)
-    if maybe_main is not None:
-        return maybe_main
-    return "main"
-
-
 def get_heads(repository: pygit2.Repository) -> list[str]:
     """Find the heads that git knows about."""
     heads = []
@@ -319,3 +348,58 @@ def get_git_flow_main() -> str | None:
 def get_git_flow_develop() -> str | None:
     """Try to find what branch has been configured as develop."""
     return first_empty_as_none(run("git", "config", "--get", "gitflow.branch.develop"))
+
+
+def refresh_remote_head(remote_name: str):
+    if remote_name is None:
+        logger.warning("Cannot refresh no remote")
+        exit(1)
+    fetch_remote(remote_name)
+
+    logger.debug(f"Refreshing the main branch from {remote_name}")
+    remote_head = rev_parse_full(f"refs/remotes/{remote_name}/HEAD")
+    if remote_head is not None and len(remote_head) > 0:
+        logger.debug(f"Found remote head {remote_head}")
+        run("git", "remote", "set-head", f"{remote_name}", "-a")
+
+
+def fast_forward(repository: Repository, branch_ref: GitRev | str):
+    if isinstance(branch_ref, GitRev):
+        resolved = branch_ref.resolved
+    else:
+        resolved = branch_ref
+    branch = repository.branches.get(resolved)
+    if not branch:
+        logger.error("Could not find branch ref %s when resolved to %s",
+                     branch_ref, resolved)
+        return
+    upstream = branch.upstream
+    if not branch.upstream:
+        logger.warning(
+            "Cannot fast forward branch ref %s branch %s since it has no upstream",
+            branch_ref, resolved)
+        return
+
+    remote_name = upstream.remote_name
+    upstream_branch: str | None = None
+    if remote_name:
+        remote = find_remote(repository, remote_name)
+        if remote is not None:
+            remote_prefix = f"{remote.name}/"
+            if upstream.shorthand.startswith(remote_prefix):
+                upstream_branch = upstream.shorthand.removeprefix(remote_prefix)
+            else:
+                logger.error("Got remote branch but could not resolve upstream branch")
+                return
+    else:
+        remote_name = '.'
+        upstream_branch = upstream.upstream_name
+
+    if upstream_branch is None:
+        logger.error("Could not determine upstream branch for %s", branch_ref)
+        return
+    head = HEAD.resolved
+    if head == resolved:
+        run("git", "pull", "--ff-only")
+    else:
+        run("git", "fetch", remote_name, f"{resolved}:{upstream_branch}")
