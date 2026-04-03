@@ -5,7 +5,7 @@ import os
 import pathlib
 import subprocess
 from argparse import ArgumentParser
-from typing import Callable
+from collections.abc import Callable
 
 import pygit2
 from pygit2 import Repository
@@ -91,8 +91,7 @@ class GitRev:
             resolved = rev_parse_short(self.resolver)
             if resolved is not None:
                 return resolved
-            else:
-                return self.resolver
+            return self.resolver
         return self.resolver()
 
 
@@ -156,6 +155,8 @@ def dump_reference(message: str, reference: pygit2.Reference):
 
 @dataclasses.dataclass
 class CommitCounts:
+    rev_from: str | None
+    rev_to: str | None
     behind: int
     ahead: int
 
@@ -176,9 +177,11 @@ def as_rev(rev: GitRev | str) -> str:
     return f"{rev}"
 
 
-def count_commits(from_rev: str, to_rev: str) -> CommitCounts:
+def count_commits(rev_from: str, rev_to: str) -> CommitCounts:
     """Git rev-list --left-right "$FROM...$TO" | grep '^<' | wc -l | awk '{print $1}'"""
-    command = ["git", "rev-list", "--left-right", f"{as_rev(from_rev)}...{as_rev(to_rev)}"]
+    if rev_from is None or rev_to is None or rev_from == rev_to:
+        return CommitCounts(rev_from, rev_to, 0, 0)
+    command = ["git", "rev-list", "--left-right", f"{as_rev(rev_from)}...{as_rev(rev_to)}"]
     lines = run(*command)
     behind = 0
     ahead = 0
@@ -189,7 +192,7 @@ def count_commits(from_rev: str, to_rev: str) -> CommitCounts:
             ahead += 1
         elif line[0] == ">":
             behind += 1
-    return CommitCounts(behind, ahead)
+    return CommitCounts(rev_from, rev_to, behind, ahead)
 
 
 def count_lines(from_rev: str, to_rev: str) -> LineCounts:
@@ -232,7 +235,7 @@ def get_branch_trackings() -> dict[str, str]:
     for line in lines:
         line = line.strip()
         if len(line) == 0 or "\t" not in line:
-            logger.warning("Bad branch mapping line (no tab) %s", line)
+            logger.debug("Bad branch mapping line (no tab) %s", line)
         else:
             short, upstream = line.split("\t", 1)
             if "\t" in upstream:
@@ -370,14 +373,11 @@ def fast_forward(repository: Repository, branch_ref: GitRev | str):
         return
     branch = repository.branches.get(resolved)
     if not branch:
-        logger.error("Could not find branch ref %s when resolved to %s",
-                     branch_ref, resolved)
+        logger.error("Could not find branch ref %s when resolved to %s", branch_ref, resolved)
         return
     upstream = branch.upstream
     if not branch.upstream:
-        logger.warning(
-            "Cannot fast forward branch ref %s branch %s since it has no upstream",
-            branch_ref, resolved)
+        logger.warning("Cannot fast forward branch ref %s branch %s since it has no upstream", branch_ref, resolved)
         return
 
     remote_name = upstream.remote_name
@@ -392,7 +392,7 @@ def fast_forward(repository: Repository, branch_ref: GitRev | str):
                 logger.error("Got remote branch but could not resolve upstream branch")
                 return
     else:
-        remote_name = '.'
+        remote_name = "."
         upstream_branch = upstream.upstream_name
 
     if upstream_branch is None:

@@ -5,13 +5,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import (
-    add_remote_argument,
-    find_remote,
-    get_main,
-    require_repository,
-    refresh_remote_head
-)
+from jmullan.git.utils import add_remote_argument, find_remote, get_main, refresh_remote_head, require_repository
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +18,7 @@ class GitMainMain(cmd.Main):
             dest="refresh_remote_head",
             action="store_true",
             default=False,
-            help="Check for a new main branch"
+            help="Check for a new main branch",
         )
         add_remote_argument(self.parser)
 

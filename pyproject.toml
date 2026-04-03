@@ -19,7 +19,8 @@ keywords = ["git"]
 dependencies = [
     "jmullan.logging@git+https://github.com/jmullan/jmullan.logging",
     "jmullan.cmd@git+https://github.com/jmullan/jmullan.cmd",
-    "pygit2"
+    "pygit2",
+    "tabulate"
 ]
 
 [project.optional-dependencies]

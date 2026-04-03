@@ -6,7 +6,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import require_repository, run, as_rev
+from jmullan.git.utils import as_rev, require_repository, run
 
 logger = logging.getLogger(__name__)
 

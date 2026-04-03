@@ -5,8 +5,7 @@ import sys
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import get_repository, HEAD, MAIN, refresh_remote_head, \
-    fast_forward, GitRev
+from jmullan.git.utils import HEAD, MAIN, GitRev, fast_forward, get_repository, refresh_remote_head
 
 logger = logging.getLogger(__name__)
 
@@ -15,12 +14,7 @@ class GitFFMain(cmd.Main):
     def __init__(self):
         super().__init__()
 
-        self.parser.add_argument(
-            "branches",
-            nargs="*",
-            default=(HEAD, MAIN),
-            help="Fast-forward these branches"
-        )
+        self.parser.add_argument("branches", nargs="*", default=(HEAD, MAIN), help="Fast-forward these branches")
         self.completed: set[str] = set()
 
     def setup(self):
