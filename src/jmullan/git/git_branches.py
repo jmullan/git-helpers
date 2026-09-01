@@ -1,6 +1,8 @@
 #!/usr/bin/env python3.13
+import fnmatch
 import logging
 import pathlib
+import re
 import sys
 
 import tabulate
@@ -48,7 +50,12 @@ def none_as_empty_string(value: str | None) -> str:
     return value
 
 
-def branches(show_remotes: bool):
+def branches(
+    show_remotes: bool,
+    glob: str | None = None,
+    grep: str | None = None,
+    includes: str | None = None
+ ):
     """_MAIN=$(git main)
     MAIN=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^'"${_MAIN}"'$')
     DEVELOP=$(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes/origin | grep '^develop$')
@@ -107,6 +114,19 @@ def branches(show_remotes: bool):
     branch_counts_from_to: dict[str, dict[str, CommitCounts | None]] = {}
     branch_froms: dict[str, str] = {}
     commit_dates: dict[str, str | None] = {}
+
+    if glob is not None:
+        filtered_branches = fnmatch.filter(filtered_branches, glob)
+    if grep is not None:
+        filtered_branches = [
+            b for b in filtered_branches
+            if re.search(grep, b) is not None
+        ]
+    if includes is not None:
+        filtered_branches = [
+            b for b in filtered_branches
+            if includes in b
+        ]
 
     for branch in filtered_branches:
         branch_from = None
@@ -208,6 +228,26 @@ class GitBranchesMain(cmd.Main):
             default=False,
             help="Also look at remotes for branches",
         )
+        self.parser.add_argument(
+            "--glob",
+            dest="glob",
+            default=None,
+            help="Filter by branch name like",
+        )
+
+        self.parser.add_argument(
+            "--pcre",
+            dest="pcre",
+            default=None,
+            help="Filter by branch name using pcre",
+        )
+
+        self.parser.add_argument(
+            "--includes",
+            dest="includes",
+            default=None,
+            help="Filter by branch name substring",
+        )
 
     def setup(self):
         super().setup()
@@ -220,7 +260,7 @@ class GitBranchesMain(cmd.Main):
 
     def main(self):
         super().main()
-        branches(self.args.include_remote)
+        branches(self.args.include_remote, self.args.glob, self.args.pcre, self.args.includes)
 
 
 def main():

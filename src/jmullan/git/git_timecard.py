@@ -44,14 +44,14 @@ class GitTimeCard(cmd.Main):
         log_file_setting = first_empty_as_none(run("git", "config", "timecard.filename"))
         if log_file_setting is None:
             return
-        log_file_path = pathlib.Path(log_file_setting)
+        log_file_path = pathlib.Path(log_file_setting).expanduser()
         work_dir_name = pathlib.Path(repo.workdir).name
         head_name = first_empty_as_none(run("git", "rev-parse", "--abbrev-ref", "HEAD"))
         today = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         extras = self.args.extras or []
-        line = " ".join(f"{x}" for x in (work_dir_name, head_name, today, *extras))
+        line = " ".join(f"{x}" for x in (today, work_dir_name, head_name, *extras))
         with log_file_path.open("a") as handle:
-            handle.write(f"{line}")
+            handle.write(f"{line}\n")
 
 
 def main():

@@ -1,55 +1,104 @@
 #!/usr/bin/env python3.13
-import itertools
 import logging
+import os
+import shutil
 import sys
+from collections.abc import Iterable
 
 from jmullan.cmd import cmd
 from jmullan.logging import easy_logging
 
-from jmullan.git.utils import HEAD, UPSTREAM, get_main, run
+from jmullan.git.utils import HEAD, UPSTREAM, get_main, git_log_diff
 
 logger = logging.getLogger(__name__)
 
 
-def short_log(rev: str) -> list[str]:
-    return run("git", "log", "--first-parent", "--pretty=format:%h %ad %s", "--date=short", f"{rev}")
+def get_terminal_width() -> int:
+    terminal_size = shutil.get_terminal_size()
+    if terminal_size is not None and terminal_size.columns is not None:
+        return terminal_size.columns
+    else:
+        return 80
 
 
-def print_columns(left: str | None, right: str | None) -> None:
-    if left is None:
-        left = ""
-    if right is None:
-        right = ""
-    print(f"{left[:40]:<40} {right[:40]:<40}")
+def optimize_column_widths(padding: int, max_widths: dict[int, int], available_width: int) -> dict[int, int]:
+    new_max_widths = max_widths.copy()
+    width = padding + sum(new_max_widths.values())
+    if width <= available_width:
+        return new_max_widths
+    item_count = len(new_max_widths)
+    remaining_width = available_width - padding
+    if remaining_width < 0 or remaining_width < item_count:
+        # there isn't enough room, so just print everything
+        return new_max_widths
 
-
-def git_logdiff(from_rev: str, to_rev: str) -> None:
-    from_lines = short_log(from_rev)
-    to_lines = short_log(to_rev)
-
-    last_common = None
-    for i, (a, b) in enumerate(zip(reversed(from_lines), reversed(to_lines), strict=False), 1):
-        if a != b:
+    min_width = (available_width - padding) // item_count
+    while width > available_width:
+        max_index = None
+        max_width = min_width
+        for index, item_width in new_max_widths.items():
+            if item_width > max_width:
+                max_index = index
+                max_width = item_width
+        if max_index is not None:
+            new_max_widths[max_index] -= 1
+        else:
             break
-        last_common = i
-    if last_common is None:
-        return
+        width = padding + sum(new_max_widths.values())
+    return new_max_widths
 
-    common_start_from = len(from_lines) - last_common
-    common_start_to = len(to_lines) - last_common
 
-    unique_from = reversed(from_lines[:common_start_from])
-    unique_to = reversed(to_lines[:common_start_to])
+class Columnist:
+    def __init__(
+        self,
+        heading: list[str],
+        data: list[tuple[str | None, ...]],
+        terminal_width: int
+    ) -> None:
+        self.heading = heading
+        self.data = data
+        self.width = terminal_width
 
-    zipped_unique = list(itertools.zip_longest(unique_from, unique_to))
-    print_columns(from_rev, to_rev)
-    for a, b in reversed(zipped_unique):
-        print_columns(a, b)
-    if last_common is not None:
-        print("=" * 81)
-        common = from_lines[-last_common:][:3]
-        for line in common:
-            print(line)
+        self.left = "| "
+        self.middle = " | "
+        self.right = " |"
+        max_widths = {}
+        for datum in data:
+            for index, item in enumerate(datum):
+                if max_widths.get(index) is None:
+                    max_widths[index] = 0
+                if item is not None:
+                    item = item.rstrip()
+                    len_item = len(item)
+                    max_widths[index] = max(max_widths.get(index, 0), len_item)
+        column_count = len(max_widths)
+        if column_count == 0:
+            return
+        separator_count = column_count - 1
+        padding = len(self.left) + len(self.right) + (separator_count * len(self.middle))
+        self.column_widths = optimize_column_widths(padding, max_widths, self.width)
+
+
+    def print_data(self) -> None:
+        if self.heading:
+            self.print_datum(self.heading)
+            heading_end = [
+                "-" * v
+                for v in self.column_widths.values()
+            ]
+            self.print_datum(heading_end)
+        for datum in self.data:
+            self.print_datum(datum)
+
+    def print_datum(self, datum: Iterable[str | None]) -> None:
+        fields = []
+        for index, item in enumerate(datum):
+            if item is None:
+                item = ""
+            column_width = self.column_widths[index]
+            fields.append(f"{item[:column_width]:<{column_width}}")
+        middle = self.middle.join(fields)
+        print(f"{self.left}{middle}{self.right}")
 
 
 class GitLogDiffMain(cmd.Main):
@@ -74,7 +123,44 @@ class GitLogDiffMain(cmd.Main):
 
     def main(self):
         super().main()
-        git_logdiff(self.args.from_rev, self.args.to_rev)
+        log_diff = git_log_diff(self.args.from_rev, self.args.to_rev)
+        terminal_width = get_terminal_width()
+        data = []
+        for a, b in reversed(log_diff.zipped_unique):
+            if a is not None and " " in a:
+                sha_a, comment_a = a.split(" ", 1)
+            else:
+                sha_a = None
+                comment_a = a
+            if b is not None and " " in b:
+                sha_b, comment_b = b.split(" ", 1)
+            else:
+                sha_b = None
+                comment_b = b
+            data.append((sha_a, comment_a, sha_b, comment_b))
+        heading = [
+            "sha",
+            self.args.from_rev,
+            "sha",
+            self.args.to_rev,
+        ]
+        columnist = Columnist(
+            heading=heading,
+            data=data,
+            terminal_width=terminal_width
+        )
+        columnist.print_data()
+
+
+        common = [(x, ) for x in log_diff.from_lines[-log_diff.last_common:][:3]]  # type: list[tuple[str | None, ...]]
+
+        common.insert(0, ("-" * terminal_width, "-" * terminal_width))
+        common_lines_printer = Columnist(
+            heading=[],
+            data=common,
+            terminal_width=terminal_width
+        )
+        common_lines_printer.print_data()
 
 
 def main():

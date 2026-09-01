@@ -1,5 +1,6 @@
 import dataclasses
 import functools
+import itertools
 import logging
 import os
 import pathlib
@@ -403,3 +404,43 @@ def fast_forward(repository: Repository, branch_ref: GitRev | str):
         run("git", "pull", "--ff-only")
     else:
         run("git", "fetch", remote_name, f"{resolved}:{upstream_branch}")
+
+
+def short_log(rev: str) -> list[str]:
+    return run("git", "log", "--first-parent", "--pretty=format:%h %ad %s", "--date=short", f"{rev}")
+
+
+@dataclasses.dataclass
+class LogDiff:
+    from_lines: list[str]
+    to_lines: list[str]
+    last_common: int | None
+    zipped_unique: list[tuple[str | None, str | None]]
+
+
+
+def git_log_diff(from_rev: str, to_rev: str) -> LogDiff:
+    from_lines = short_log(from_rev)
+    to_lines = short_log(to_rev)
+
+    last_common = None
+    for i, (a, b) in enumerate(zip(reversed(from_lines), reversed(to_lines), strict=False), 1):
+        if a != b:
+            break
+        last_common = i
+    if last_common is None:
+        unique_from = from_lines
+        unique_to = to_lines
+    else:
+        common_start_from = len(from_lines) - last_common
+        common_start_to = len(to_lines) - last_common
+
+        unique_from = reversed(from_lines[:common_start_from])
+        unique_to = reversed(to_lines[:common_start_to])
+
+    return LogDiff(
+        from_lines,
+        to_lines,
+        last_common,
+        list(itertools.zip_longest(unique_from, unique_to))
+    )

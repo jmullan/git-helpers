@@ -86,6 +86,7 @@ git-smash = "jmullan.git.git_smash:main"
 git-stats = "jmullan.git.git_stats:main"
 git-step = "jmullan.git.git_step:main"
 git-timecard = "jmullan.git.git_timecard:main"
+git-timecard-logs = "jmullan.git.git_timecard_logs:main"
 git-track = "jmullan.git.git_track:main"
 
 

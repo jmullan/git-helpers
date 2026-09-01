@@ -19,9 +19,9 @@ class GitBehindMain(cmd.Main):
         super().__init__()
         group = self.parser.add_argument_group()
 
-        group.add_argument("to_rev", default=UPSTREAM, help="use this remote.")
+        group.add_argument("to_rev", default=UPSTREAM, help="How far behind this branch?")
 
-        group.add_argument("from_rev", nargs="?", default=HEAD, help="use this remote")
+        group.add_argument("from_rev", nargs="?", default=HEAD, help="How far is this branch behind?")
 
     def setup(self):
         super().setup()
