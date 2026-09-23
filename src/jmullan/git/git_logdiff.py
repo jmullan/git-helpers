@@ -55,7 +55,7 @@ class Columnist:
         data: list[tuple[str | None, ...]],
         terminal_width: int
     ) -> None:
-        self.heading = heading
+        self.heading = heading or []
         self.data = data
         self.width = terminal_width
 
@@ -63,6 +63,13 @@ class Columnist:
         self.middle = " | "
         self.right = " |"
         max_widths = {}
+
+        for index, item in enumerate(self.heading):
+            if max_widths.get(index) is None:
+                max_widths[index] = 0
+            len_item = len(item)
+            max_widths[index] = max(max_widths.get(index, 0), len_item)
+
         for datum in data:
             for index, item in enumerate(datum):
                 if max_widths.get(index) is None:
@@ -71,8 +78,9 @@ class Columnist:
                     item = item.rstrip()
                     len_item = len(item)
                     max_widths[index] = max(max_widths.get(index, 0), len_item)
-        column_count = len(max_widths)
+        column_count = max(len(max_widths), len(self.heading))
         if column_count == 0:
+            self.column_widths = {}
             return
         separator_count = column_count - 1
         padding = len(self.left) + len(self.right) + (separator_count * len(self.middle))
